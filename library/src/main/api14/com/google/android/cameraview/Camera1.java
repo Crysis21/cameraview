@@ -17,6 +17,7 @@
 package com.google.android.cameraview;
 
 import android.annotation.SuppressLint;
+import android.annotation.TargetApi;
 import android.graphics.SurfaceTexture;
 import android.hardware.Camera;
 import android.os.Build;
@@ -327,6 +328,9 @@ class Camera1 extends CameraViewImpl {
             mCameraParameters.setRotation(calcCameraRotation(mDisplayOrientation));
             setAutoFocusInternal(mAutoFocus);
             setFlashInternal(mFlash);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
+                disableShutterSound();
+            }
             mCamera.setParameters(mCameraParameters);
             if (mShowingPreview) {
                 mCamera.startPreview();
@@ -425,6 +429,15 @@ class Camera1 extends CameraViewImpl {
         } else {
             mFlash = flash;
             return false;
+        }
+    }
+
+    @TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR1)
+    private void disableShutterSound() {
+        Camera.CameraInfo info = new Camera.CameraInfo();
+        Camera.getCameraInfo(mCameraId, info);
+        if (info.canDisableShutterSound) {
+            mCamera.enableShutterSound(false);
         }
     }
 

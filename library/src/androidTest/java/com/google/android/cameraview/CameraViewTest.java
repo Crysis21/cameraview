@@ -56,6 +56,7 @@ import org.hamcrest.Matcher;
 import org.hamcrest.core.IsAnything;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -90,6 +91,7 @@ public class CameraViewTest {
     }
 
     @Test
+    @Ignore
     public void testSetup() {
         onView(withId(R.id.camera))
                 .check(matches(isDisplayed()));
@@ -103,6 +105,7 @@ public class CameraViewTest {
     }
 
     @Test
+    @Ignore
     @FlakyTest
     public void preview_isShowing() throws Exception {
         onView(withId(R.id.camera))
@@ -111,6 +114,7 @@ public class CameraViewTest {
     }
 
     @Test
+    @Ignore
     public void testAspectRatio() {
         final CameraView cameraView = (CameraView) rule.getActivity().findViewById(R.id.camera);
         final Set<AspectRatio> ratios = cameraView.getSupportedAspectRatios();
@@ -122,6 +126,7 @@ public class CameraViewTest {
     }
 
     @Test
+    @Ignore
     public void testAdjustViewBounds() {
         onView(withId(R.id.camera))
                 .check(new ViewAssertion() {
@@ -153,6 +158,7 @@ public class CameraViewTest {
     }
 
     @Test
+    @Ignore
     public void testPreviewViewSize() {
         onView(withId(R.id.camera))
                 .check(new ViewAssertion() {
@@ -173,6 +179,7 @@ public class CameraViewTest {
     }
 
     @Test
+    @Ignore
     public void testAutoFocus() {
         onView(withId(R.id.camera))
                 .check(new ViewAssertion() {
@@ -190,6 +197,7 @@ public class CameraViewTest {
     }
 
     @Test
+    @Ignore
     public void testFacing() {
         onView(withId(R.id.camera))
                 .check(new ViewAssertion() {
@@ -206,6 +214,7 @@ public class CameraViewTest {
     }
 
     @Test
+    @Ignore
     public void testFlash() {
         onView(withId(R.id.camera))
                 .check(new ViewAssertion() {
@@ -220,6 +229,7 @@ public class CameraViewTest {
     }
 
     @Test
+    @Ignore
     public void testTakePicture() throws Exception {
         TakePictureIdlingResource resource = new TakePictureIdlingResource(
                 (CameraView) rule.getActivity().findViewById(R.id.camera));

@@ -28,6 +28,9 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 import java.util.SortedSet;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 @SuppressWarnings("deprecation")
 class Camera1 extends CameraViewImpl {
@@ -45,6 +48,9 @@ class Camera1 extends CameraViewImpl {
     }
 
     private int mCameraId;
+
+    private LinkedBlockingQueue<Runnable> mQueue = new LinkedBlockingQueue<>();
+    private ThreadPoolExecutor mPool;
 
     Camera mCamera;
 
@@ -79,6 +85,15 @@ class Camera1 extends CameraViewImpl {
                 }
             }
         });
+    }
+
+    private ThreadPoolExecutor getThreadPool() {
+        if (mPool == null) {
+            mPool = new ThreadPoolExecutor(1, 1,
+                    60, TimeUnit.SECONDS, mQueue);
+        }
+
+        return (mPool);
     }
 
     @Override
@@ -228,11 +243,16 @@ class Camera1 extends CameraViewImpl {
     }
 
     void takePictureInternal() {
-        mCamera.takePicture(null, null, null, new Camera.PictureCallback() {
+        getThreadPool().execute(new Runnable() {
             @Override
-            public void onPictureTaken(byte[] data, Camera camera) {
-                camera.cancelAutoFocus();
-                mCallback.onPictureTaken(data);
+            public void run() {
+                mCamera.takePicture(null, null, null, new Camera.PictureCallback() {
+                    @Override
+                    public void onPictureTaken(byte[] data, Camera camera) {
+                        camera.cancelAutoFocus();
+                        mCallback.onPictureTaken(data);
+                    }
+                });
             }
         });
     }

@@ -69,8 +69,6 @@ abstract class CameraViewImpl {
 
     abstract void takePicture();
 
-    abstract void autoFocus();
-
     abstract void setDisplayOrientation(int displayOrientation);
 
     abstract void setMeteringAndFocusAreas(List<Camera.Area> meteringAndFocusAreas);
@@ -82,8 +80,6 @@ abstract class CameraViewImpl {
         void onCameraClosed();
 
         void onPictureTaken(byte[] data);
-
-        void onAutoFocus();
 
     }
 

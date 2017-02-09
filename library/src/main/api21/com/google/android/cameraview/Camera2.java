@@ -343,12 +343,6 @@ class Camera2 extends CameraViewImpl {
         throw new RuntimeException("Set Metering and focus areas is not Supported");
     }
 
-    @Override
-    void autoFocus() {
-        //TODO: Implement
-        throw new RuntimeException("Auto focus is not Supported");
-    }
-
     /**
      * <p>Chooses a camera ID by the specified camera facing ({@link #mFacing}).</p>
      * <p>This rewrites {@link #mCameraId}, {@link #mCameraCharacteristics}, and optionally

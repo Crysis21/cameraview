@@ -179,7 +179,6 @@ public class CameraView extends FrameLayout {
                         Rect areaRect = new Rect(Math.max(rectXMiddle - halfAreaSide, -1000), Math.max(rectYMiddle - halfAreaSide, -1000), Math.min(rectXMiddle + halfAreaSide, 1000), Math.min(rectYMiddle + halfAreaSide, 1000));
                         meteringAreas.add(new Camera.Area(areaRect, 1000));
                         mImpl.setMeteringAndFocusAreas(meteringAreas);
-                        mImpl.autoFocus();
                         Log.d(TAG, event.getX() + " " + event.getY() + " size:" + getWidth() + "x" + getHeight() + " Rect: " + areaRect);
                     }
                     return false;
@@ -492,13 +491,6 @@ public class CameraView extends FrameLayout {
             }
         }
 
-        @Override
-        public void onAutoFocus() {
-            for (Callback callback : mCallbacks) {
-                callback.onAutoFocus(CameraView.this);
-            }
-        }
-
         public void reserveRequestLayoutOnOpen() {
             mRequestLayoutOnOpen = true;
         }
@@ -586,13 +578,6 @@ public class CameraView extends FrameLayout {
         public void onPictureTaken(CameraView cameraView, byte[] data) {
         }
 
-        /**
-         * Called when autoFocus finished.
-         *
-         * @param cameraView The associated {@link CameraView}.
-         */
-        public void onAutoFocus(CameraView cameraView) {
-        }
     }
 
 }

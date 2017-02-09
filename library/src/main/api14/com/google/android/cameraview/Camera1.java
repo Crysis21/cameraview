@@ -225,23 +225,6 @@ class Camera1 extends CameraViewImpl {
     }
 
     @Override
-    void autoFocus() {
-        if (!isCameraOpened()) {
-            throw new IllegalStateException(
-                    "Camera is not ready. Call start() before takePicture().");
-        }
-        if (getAutoFocus()) {
-            mCamera.cancelAutoFocus();
-            mCamera.autoFocus(new Camera.AutoFocusCallback() {
-                @Override
-                public void onAutoFocus(boolean success, Camera camera) {
-                    mCallback.onAutoFocus();
-                }
-            });
-        }
-    }
-
-    @Override
     void takePicture() {
         if (!isCameraOpened()) {
             throw new IllegalStateException(
@@ -313,6 +296,13 @@ class Camera1 extends CameraViewImpl {
             mCameraParameters.setMeteringAreas(meteringAndFocusAreas);
         }
         mCamera.setParameters(mCameraParameters);
+        mCamera.autoFocus(new Camera.AutoFocusCallback() {
+            @Override
+            public void onAutoFocus(boolean success, Camera camera) {
+                mCamera.cancelAutoFocus();
+                setAutoFocusInternal(mAutoFocus);
+            }
+        });
     }
 
     /**

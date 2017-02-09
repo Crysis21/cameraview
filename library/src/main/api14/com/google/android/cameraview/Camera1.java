@@ -21,6 +21,7 @@ import android.annotation.TargetApi;
 import android.graphics.SurfaceTexture;
 import android.hardware.Camera;
 import android.os.Build;
+import android.support.annotation.NonNull;
 import android.support.v4.util.SparseArrayCompat;
 import android.view.SurfaceHolder;
 
@@ -224,6 +225,23 @@ class Camera1 extends CameraViewImpl {
     }
 
     @Override
+    void autoFocus() {
+        if (!isCameraOpened()) {
+            throw new IllegalStateException(
+                    "Camera is not ready. Call start() before takePicture().");
+        }
+        if (getAutoFocus()) {
+            mCamera.cancelAutoFocus();
+            mCamera.autoFocus(new Camera.AutoFocusCallback() {
+                @Override
+                public void onAutoFocus(boolean success, Camera camera) {
+                    mCallback.onAutoFocus();
+                }
+            });
+        }
+    }
+
+    @Override
     void takePicture() {
         if (!isCameraOpened()) {
             throw new IllegalStateException(
@@ -276,6 +294,25 @@ class Camera1 extends CameraViewImpl {
                 mCamera.startPreview();
             }
         }
+    }
+
+    @Override
+    @TargetApi(Build.VERSION_CODES.ICE_CREAM_SANDWICH)
+    void setMeteringAndFocusAreas(@NonNull List<Camera.Area> meteringAndFocusAreas) {
+        if (mCameraParameters.getSupportedFocusModes().contains(Camera.Parameters.FOCUS_MODE_MACRO)){
+            mCameraParameters.setFocusMode(Camera.Parameters.FOCUS_MODE_MACRO);
+        }
+        if (meteringAndFocusAreas.size() > 1) {
+            throw new RuntimeException("Multiple focus areas are not Supported");
+        }
+        if (mCameraParameters.getMaxNumFocusAreas() > 0) {
+            mCameraParameters.setFocusAreas(meteringAndFocusAreas);
+        }
+
+        if (mCameraParameters.getMaxNumMeteringAreas() > 0) {
+            mCameraParameters.setMeteringAreas(meteringAndFocusAreas);
+        }
+        mCamera.setParameters(mCameraParameters);
     }
 
     /**

@@ -19,6 +19,7 @@ package com.google.android.cameraview;
 import android.annotation.TargetApi;
 import android.content.Context;
 import android.graphics.ImageFormat;
+import android.hardware.Camera;
 import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraCaptureSession;
 import android.hardware.camera2.CameraCharacteristics;
@@ -37,6 +38,7 @@ import android.view.Surface;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Set;
 import java.util.SortedSet;
 
@@ -333,6 +335,18 @@ class Camera2 extends CameraViewImpl {
     void setDisplayOrientation(int displayOrientation) {
         mDisplayOrientation = displayOrientation;
         mPreview.setDisplayOrientation(mDisplayOrientation);
+    }
+
+    @Override
+    void setMeteringAndFocusAreas(List<Camera.Area> meteringAndFocusAreas) {
+        //TODO: Implement
+        throw new RuntimeException("Set Metering and focus areas is not Supported");
+    }
+
+    @Override
+    void autoFocus() {
+        //TODO: Implement
+        throw new RuntimeException("Auto focus is not Supported");
     }
 
     /**

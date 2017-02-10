@@ -112,6 +112,7 @@ class Camera1 extends CameraViewImpl {
     void stop() {
         if (mCamera != null) {
             mCamera.stopPreview();
+            mCamera.cancelAutoFocus();
         }
         mShowingPreview = false;
         releaseCamera();

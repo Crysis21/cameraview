@@ -23,6 +23,7 @@ import android.hardware.Camera;
 import android.os.Build;
 import android.support.annotation.NonNull;
 import android.support.v4.util.SparseArrayCompat;
+import android.util.Log;
 import android.view.SurfaceHolder;
 
 import java.io.IOException;
@@ -35,6 +36,8 @@ import java.util.concurrent.TimeUnit;
 
 @SuppressWarnings("deprecation")
 class Camera1 extends CameraViewImpl {
+
+    private static final String TAG = Camera1.class.getCanonicalName();
 
     private static final int INVALID_CAMERA_ID = -1;
 
@@ -248,13 +251,17 @@ class Camera1 extends CameraViewImpl {
         getThreadPool().execute(new Runnable() {
             @Override
             public void run() {
-                mCamera.takePicture(null, null, null, new Camera.PictureCallback() {
-                    @Override
-                    public void onPictureTaken(byte[] data, Camera camera) {
-                        camera.cancelAutoFocus();
-                        mCallback.onPictureTaken(data);
-                    }
-                });
+                try {
+                    mCamera.takePicture(null, null, null, new Camera.PictureCallback() {
+                        @Override
+                        public void onPictureTaken(byte[] data, Camera camera) {
+                            camera.cancelAutoFocus();
+                            mCallback.onPictureTaken(data);
+                        }
+                    });
+                }catch (RuntimeException ex){
+                    Log.e(TAG, "Take Picture Thrown Ex",ex);
+                }
             }
         });
     }

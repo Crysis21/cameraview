@@ -204,7 +204,6 @@ public class CameraView extends FrameLayout {
      * Convert touch position x:y to {@link Camera.Area} position -1000:-1000 to 1000:1000.
      * <p>
      * Rotate, scale and translate touch rectangle using matrix configured in
-     * {@link SurfaceHolder.Callback#surfaceChanged(android.view.SurfaceHolder, int, int, int)}
      */
     private Rect calculateTapArea(float x, float y, float coefficient) {
         int areaSize = Float.valueOf(focusAreaSize * coefficient).intValue();

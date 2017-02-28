@@ -338,7 +338,7 @@ class Camera2 extends CameraViewImpl {
     }
 
     @Override
-    void setMeteringAndFocusAreas(List<Camera.Area> meteringAndFocusAreas) {
+    void setMeteringAndFocusAreas(@NonNull List<Camera.Area> meteringAreas, @NonNull List<Camera.Area> focusAreas) {
         //TODO: Implement
         throw new RuntimeException("Set Metering and focus areas is not Supported");
     }
@@ -623,8 +623,8 @@ class Camera2 extends CameraViewImpl {
                     new CameraCaptureSession.CaptureCallback() {
                         @Override
                         public void onCaptureCompleted(@NonNull CameraCaptureSession session,
-                                @NonNull CaptureRequest request,
-                                @NonNull TotalCaptureResult result) {
+                                                       @NonNull CaptureRequest request,
+                                                       @NonNull TotalCaptureResult result) {
                             unlockFocus();
                         }
                     }, null);
@@ -678,13 +678,13 @@ class Camera2 extends CameraViewImpl {
 
         @Override
         public void onCaptureProgressed(@NonNull CameraCaptureSession session,
-                @NonNull CaptureRequest request, @NonNull CaptureResult partialResult) {
+                                        @NonNull CaptureRequest request, @NonNull CaptureResult partialResult) {
             process(partialResult);
         }
 
         @Override
         public void onCaptureCompleted(@NonNull CameraCaptureSession session,
-                @NonNull CaptureRequest request, @NonNull TotalCaptureResult result) {
+                                       @NonNull CaptureRequest request, @NonNull TotalCaptureResult result) {
             process(result);
         }
 

@@ -21,6 +21,7 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.graphics.Rect;
+import android.graphics.RectF;
 import android.hardware.Camera;
 import android.os.Build;
 import android.os.Parcel;
@@ -103,6 +104,8 @@ public class CameraView extends FrameLayout {
 
     private final DisplayOrientationDetector mDisplayOrientationDetector;
 
+    private int focusAreaSize;
+
     public CameraView(Context context) {
         this(context, null);
     }
@@ -145,6 +148,7 @@ public class CameraView extends FrameLayout {
                 mImpl.setDisplayOrientation(displayOrientation);
             }
         };
+        focusAreaSize = getResources().getDimensionPixelSize(R. dimen.camera_focus_area_size);
         setTouchToFocus();
     }
 
@@ -174,18 +178,54 @@ public class CameraView extends FrameLayout {
                     if (vector < radius) {
                         int rectXMiddle = (int) (1000 * eX / (getWidth() / 2));
                         int rectYMiddle = (int) (1000 * eX / (getHeight() / 2));
-                        List<Camera.Area> meteringAreas = new ArrayList<Camera.Area>();
-                        int halfAreaSide = 50;
+                        int halfAreaSide = 150;
                         Rect areaRect = new Rect(Math.max(rectXMiddle - halfAreaSide, -1000), Math.max(rectYMiddle - halfAreaSide, -1000), Math.min(rectXMiddle + halfAreaSide, 1000), Math.min(rectYMiddle + halfAreaSide, 1000));
-                        meteringAreas.add(new Camera.Area(areaRect, 1000));
-                        mImpl.setMeteringAndFocusAreas(meteringAreas);
-                        Log.d(TAG, event.getX() + " " + event.getY() + " size:" + getWidth() + "x" + getHeight() + " Rect: " + areaRect);
+                        //meteringAreas.add(new Camera.Area(areaRect, 1000));
+                        List<Camera.Area> focusAreas = new ArrayList<Camera.Area>();
+                        Rect focusRect = calculateTapArea(event.getX(), event.getY(), 1f);
+                        focusAreas.add(new Camera.Area(focusRect, 1000));
+
+                        List<Camera.Area> meteringAreas = new ArrayList<Camera.Area>();
+                        Rect meteringRect = calculateTapArea(event.getX(), event.getY(), 1.5f);
+                        meteringAreas.add(new Camera.Area(meteringRect, 1000));
+
+                        mImpl.setMeteringAndFocusAreas(meteringAreas, focusAreas);
+                        Log.d(TAG, "Focus Area size: " + focusAreaSize);
+                                Log.d(TAG, event.getX() + " " + event.getY() + " size:" + getWidth() + "x" + getHeight() + " Rect: " + areaRect + "Focus Rect:" + focusRect +"Metering Rect: " +meteringRect);
                     }
                     return false;
                 }
             });
 
         }
+    }
+
+    /**
+     * Convert touch position x:y to {@link Camera.Area} position -1000:-1000 to 1000:1000.
+     * <p>
+     * Rotate, scale and translate touch rectangle using matrix configured in
+     * {@link SurfaceHolder.Callback#surfaceChanged(android.view.SurfaceHolder, int, int, int)}
+     */
+    private Rect calculateTapArea(float x, float y, float coefficient) {
+        int areaSize = Float.valueOf(focusAreaSize * coefficient).intValue();
+
+        int left = clamp((int) x - areaSize / 2, 0, getWidth() - areaSize);
+        int top = clamp((int) y - areaSize / 2, 0, getHeight() - areaSize);
+
+        RectF rectF = new RectF(left, top, left + areaSize, top + areaSize);
+        //matrix.mapRect(rectF);
+
+        return new Rect(Math.round(rectF.left), Math.round(rectF.top), Math.round(rectF.right), Math.round(rectF.bottom));
+    }
+
+    private int clamp(int x, int min, int max) {
+        if (x > max) {
+            return max;
+        }
+        if (x < min) {
+            return min;
+        }
+        return x;
     }
 
     @Override

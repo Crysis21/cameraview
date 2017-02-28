@@ -71,7 +71,7 @@ abstract class CameraViewImpl {
 
     abstract void setDisplayOrientation(int displayOrientation);
 
-    abstract void setMeteringAndFocusAreas(List<Camera.Area> meteringAndFocusAreas);
+    abstract void setMeteringAndFocusAreas(List<Camera.Area> meteringAreas, List<Camera.Area> focusAreas);
 
     interface Callback {
 

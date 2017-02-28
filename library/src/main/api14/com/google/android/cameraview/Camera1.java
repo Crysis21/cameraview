@@ -259,8 +259,8 @@ class Camera1 extends CameraViewImpl {
                             mCallback.onPictureTaken(data);
                         }
                     });
-                }catch (RuntimeException ex){
-                    Log.e(TAG, "Take Picture Thrown Ex",ex);
+                } catch (RuntimeException ex) {
+                    Log.e(TAG, "Take Picture Thrown Ex", ex);
                 }
             }
         });
@@ -289,28 +289,37 @@ class Camera1 extends CameraViewImpl {
 
     @Override
     @TargetApi(Build.VERSION_CODES.ICE_CREAM_SANDWICH)
-    void setMeteringAndFocusAreas(@NonNull List<Camera.Area> meteringAndFocusAreas) {
-        if (mCameraParameters.getSupportedFocusModes().contains(Camera.Parameters.FOCUS_MODE_MACRO)){
-            mCameraParameters.setFocusMode(Camera.Parameters.FOCUS_MODE_MACRO);
+    void setMeteringAndFocusAreas(@NonNull List<Camera.Area> meteringAreas, @NonNull List<Camera.Area> focusAreas) {
+        if (mCameraParameters.getFocusMode() != Camera.Parameters.FOCUS_MODE_AUTO && mCameraParameters.getSupportedFocusModes().contains(Camera.Parameters.FOCUS_MODE_AUTO)) {
+            mCameraParameters.setFocusMode(Camera.Parameters.FOCUS_MODE_AUTO);
         }
-        if (meteringAndFocusAreas.size() > 1) {
+        if (focusAreas.size() > 1) {
             throw new RuntimeException("Multiple focus areas are not Supported");
         }
         if (mCameraParameters.getMaxNumFocusAreas() > 0) {
-            mCameraParameters.setFocusAreas(meteringAndFocusAreas);
+            mCameraParameters.setFocusAreas(focusAreas);
         }
 
         if (mCameraParameters.getMaxNumMeteringAreas() > 0) {
-            mCameraParameters.setMeteringAreas(meteringAndFocusAreas);
+            mCameraParameters.setMeteringAreas(meteringAreas);
         }
-        mCamera.setParameters(mCameraParameters);
-        mCamera.autoFocus(new Camera.AutoFocusCallback() {
-            @Override
-            public void onAutoFocus(boolean success, Camera camera) {
-                mCamera.cancelAutoFocus();
-                setAutoFocusInternal(mAutoFocus);
-            }
-        });
+        try {
+            mCamera.cancelAutoFocus();
+            mCamera.setParameters(mCameraParameters);
+            mCamera.startPreview();
+            mCamera.autoFocus(new Camera.AutoFocusCallback() {
+                @Override
+                public void onAutoFocus(boolean success, Camera camera) {
+                    Log.d(TAG, "Auto focus in setMeteringAndFocusAreas finished with success result: " + success);
+                    /*mCamera.cancelAutoFocus();
+                    setAutoFocusInternal(mAutoFocus);
+                    mCamera.setParameters(mCameraParameters);
+                    mCamera.startPreview();*/
+                }
+            });
+        } catch (Exception e) {
+            Log.e(TAG, "Error setting Metering and Focus Areas", e);
+        }
     }
 
     /**

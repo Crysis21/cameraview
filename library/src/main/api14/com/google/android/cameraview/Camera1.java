@@ -21,7 +21,9 @@ import android.annotation.TargetApi;
 import android.graphics.SurfaceTexture;
 import android.hardware.Camera;
 import android.os.Build;
+import android.support.annotation.NonNull;
 import android.support.v4.util.SparseArrayCompat;
+import android.util.Log;
 import android.view.SurfaceHolder;
 
 import java.io.IOException;
@@ -34,6 +36,8 @@ import java.util.concurrent.TimeUnit;
 
 @SuppressWarnings("deprecation")
 class Camera1 extends CameraViewImpl {
+
+    private static final String TAG = Camera1.class.getCanonicalName();
 
     private static final int INVALID_CAMERA_ID = -1;
 
@@ -112,6 +116,7 @@ class Camera1 extends CameraViewImpl {
     void stop() {
         if (mCamera != null) {
             mCamera.stopPreview();
+            mCamera.cancelAutoFocus();
         }
         mShowingPreview = false;
         releaseCamera();
@@ -246,13 +251,17 @@ class Camera1 extends CameraViewImpl {
         getThreadPool().execute(new Runnable() {
             @Override
             public void run() {
-                mCamera.takePicture(null, null, null, new Camera.PictureCallback() {
-                    @Override
-                    public void onPictureTaken(byte[] data, Camera camera) {
-                        camera.cancelAutoFocus();
-                        mCallback.onPictureTaken(data);
-                    }
-                });
+                try {
+                    mCamera.takePicture(null, null, null, new Camera.PictureCallback() {
+                        @Override
+                        public void onPictureTaken(byte[] data, Camera camera) {
+                            camera.cancelAutoFocus();
+                            mCallback.onPictureTaken(data);
+                        }
+                    });
+                } catch (RuntimeException ex) {
+                    Log.e(TAG, "Take Picture Thrown Ex", ex);
+                }
             }
         });
     }
@@ -275,6 +284,41 @@ class Camera1 extends CameraViewImpl {
             if (needsToStopPreview) {
                 mCamera.startPreview();
             }
+        }
+    }
+
+    @Override
+    @TargetApi(Build.VERSION_CODES.ICE_CREAM_SANDWICH)
+    void setMeteringAndFocusAreas(@NonNull List<Camera.Area> meteringAreas, @NonNull List<Camera.Area> focusAreas) {
+        if (mCameraParameters.getFocusMode() != Camera.Parameters.FOCUS_MODE_AUTO && mCameraParameters.getSupportedFocusModes().contains(Camera.Parameters.FOCUS_MODE_AUTO)) {
+            mCameraParameters.setFocusMode(Camera.Parameters.FOCUS_MODE_AUTO);
+        }
+        if (focusAreas.size() > 1) {
+            throw new RuntimeException("Multiple focus areas are not Supported");
+        }
+        if (mCameraParameters.getMaxNumFocusAreas() > 0) {
+            mCameraParameters.setFocusAreas(focusAreas);
+        }
+
+        if (mCameraParameters.getMaxNumMeteringAreas() > 0) {
+            mCameraParameters.setMeteringAreas(meteringAreas);
+        }
+        try {
+            mCamera.cancelAutoFocus();
+            mCamera.setParameters(mCameraParameters);
+            mCamera.startPreview();
+            mCamera.autoFocus(new Camera.AutoFocusCallback() {
+                @Override
+                public void onAutoFocus(boolean success, Camera camera) {
+                    Log.d(TAG, "Auto focus in setMeteringAndFocusAreas finished with success result: " + success);
+                    /*mCamera.cancelAutoFocus();
+                    setAutoFocusInternal(mAutoFocus);
+                    mCamera.setParameters(mCameraParameters);
+                    mCamera.startPreview();*/
+                }
+            });
+        } catch (Exception e) {
+            Log.e(TAG, "Error setting Metering and Focus Areas", e);
         }
     }
 

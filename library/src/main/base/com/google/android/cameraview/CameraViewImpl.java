@@ -16,8 +16,10 @@
 
 package com.google.android.cameraview;
 
+import android.hardware.Camera;
 import android.view.View;
 
+import java.util.List;
 import java.util.Set;
 
 abstract class CameraViewImpl {
@@ -68,6 +70,8 @@ abstract class CameraViewImpl {
     abstract void takePicture();
 
     abstract void setDisplayOrientation(int displayOrientation);
+
+    abstract void setMeteringAndFocusAreas(List<Camera.Area> meteringAreas, List<Camera.Area> focusAreas);
 
     interface Callback {
 

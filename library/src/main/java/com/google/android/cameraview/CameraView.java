@@ -16,9 +16,13 @@
 
 package com.google.android.cameraview;
 
+import android.annotation.TargetApi;
 import android.app.Activity;
 import android.content.Context;
 import android.content.res.TypedArray;
+import android.graphics.Rect;
+import android.graphics.RectF;
+import android.hardware.Camera;
 import android.os.Build;
 import android.os.Parcel;
 import android.os.Parcelable;
@@ -28,43 +32,68 @@ import android.support.annotation.Nullable;
 import android.support.v4.os.ParcelableCompat;
 import android.support.v4.os.ParcelableCompatCreatorCallbacks;
 import android.util.AttributeSet;
+import android.util.Log;
+import android.view.MotionEvent;
+import android.view.View;
 import android.widget.FrameLayout;
+import android.widget.ImageView;
+import android.widget.RelativeLayout;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 
 public class CameraView extends FrameLayout {
 
-    /** The camera device faces the opposite direction as the device's screen. */
+    private static final String TAG = CameraView.class.getCanonicalName();
+    /**
+     * The camera device faces the opposite direction as the device's screen.
+     */
     public static final int FACING_BACK = Constants.FACING_BACK;
 
-    /** The camera device faces the same direction as the device's screen. */
+    /**
+     * The camera device faces the same direction as the device's screen.
+     */
     public static final int FACING_FRONT = Constants.FACING_FRONT;
 
-    /** Direction the camera faces relative to device screen. */
+    /**
+     * Direction the camera faces relative to device screen.
+     */
     @IntDef({FACING_BACK, FACING_FRONT})
     @Retention(RetentionPolicy.SOURCE)
     public @interface Facing {
     }
 
-    /** Flash will not be fired. */
+    /**
+     * Flash will not be fired.
+     */
     public static final int FLASH_OFF = Constants.FLASH_OFF;
 
-    /** Flash will always be fired during snapshot. */
+    /**
+     * Flash will always be fired during snapshot.
+     */
     public static final int FLASH_ON = Constants.FLASH_ON;
 
-    /** Constant emission of light during preview, auto-focus and snapshot. */
+    /**
+     * Constant emission of light during preview, auto-focus and snapshot.
+     */
     public static final int FLASH_TORCH = Constants.FLASH_TORCH;
 
-    /** Flash will be fired automatically when required. */
+    /**
+     * Flash will be fired automatically when required.
+     */
     public static final int FLASH_AUTO = Constants.FLASH_AUTO;
 
-    /** Flash will be fired in red-eye reduction mode. */
+    /**
+     * Flash will be fired in red-eye reduction mode.
+     */
     public static final int FLASH_RED_EYE = Constants.FLASH_RED_EYE;
 
-    /** The mode for for the camera device's flash control */
+    /**
+     * The mode for for the camera device's flash control
+     */
     @IntDef({FLASH_OFF, FLASH_ON, FLASH_TORCH, FLASH_AUTO, FLASH_RED_EYE})
     public @interface Flash {
     }
@@ -76,6 +105,8 @@ public class CameraView extends FrameLayout {
     private boolean mAdjustViewBounds;
 
     private final DisplayOrientationDetector mDisplayOrientationDetector;
+
+    private int focusAreaSize;
 
     public CameraView(Context context) {
         this(context, null);
@@ -93,10 +124,10 @@ public class CameraView extends FrameLayout {
         mCallbacks = new CallbackBridge();
         //if (Build.VERSION.SDK_INT < 21) {
         mImpl = new Camera1(mCallbacks, preview);
-       // } else if (Build.VERSION.SDK_INT < 23) {
-          //  mImpl = new Camera2(mCallbacks, preview, context);
+        // } else if (Build.VERSION.SDK_INT < 23) {
+        //  mImpl = new Camera2(mCallbacks, preview, context);
         //} else {
-           // mImpl = new Camera2Api23(mCallbacks, preview, context);
+        // mImpl = new Camera2Api23(mCallbacks, preview, context);
         //}
         // Attributes
         TypedArray a = context.obtainStyledAttributes(attrs, R.styleable.CameraView, defStyleAttr,
@@ -119,6 +150,8 @@ public class CameraView extends FrameLayout {
                 mImpl.setDisplayOrientation(displayOrientation);
             }
         };
+        focusAreaSize = getResources().getDimensionPixelSize(R. dimen.camera_focus_area_size);
+        setTouchToFocus();
     }
 
     @NonNull
@@ -130,6 +163,76 @@ public class CameraView extends FrameLayout {
             preview = new TextureViewPreview(context, this);
         }
         return preview;
+    }
+
+    @TargetApi(Build.VERSION_CODES.ICE_CREAM_SANDWICH)
+    private void setTouchToFocus() {
+        if (Build.VERSION.SDK_INT > 14) {
+            setOnTouchListener(new OnTouchListener() {
+                @Override
+                public boolean onTouch(View v, MotionEvent event) {
+                    int size = Math.min(getHeight(), getWidth());
+                    float radius = size / 2.0f;
+                    float delta = (getHeight() - getWidth()) / 2;
+                    float eX = event.getX() - radius;
+                    float eY = event.getY() - radius - delta;
+                    float vector = (float) Math.sqrt(eX * eX + eY * eY);
+                    if (vector < radius) {
+                        ImageView focus = new ImageView(getContext());
+                        focus.setImageResource(R.drawable.focus_circle);
+                        RelativeLayout.LayoutParams layoutParams = new RelativeLayout.LayoutParams(300, 300);
+                        layoutParams.setMargins(400,400,400,400);
+                        addView(focus, layoutParams);
+
+                        int rectXMiddle = (int) (1000 * eX / (getWidth() / 2));
+                        int rectYMiddle = (int) (1000 * eX / (getHeight() / 2));
+                        int halfAreaSide = 150;
+                        Rect areaRect = new Rect(Math.max(rectXMiddle - halfAreaSide, -1000), Math.max(rectYMiddle - halfAreaSide, -1000), Math.min(rectXMiddle + halfAreaSide, 1000), Math.min(rectYMiddle + halfAreaSide, 1000));
+                        //meteringAreas.add(new Camera.Area(areaRect, 1000));
+                        List<Camera.Area> focusAreas = new ArrayList<Camera.Area>();
+                        Rect focusRect = calculateTapArea(event.getX(), event.getY(), 1f);
+                        focusAreas.add(new Camera.Area(focusRect, 1000));
+
+                        List<Camera.Area> meteringAreas = new ArrayList<Camera.Area>();
+                        Rect meteringRect = calculateTapArea(event.getX(), event.getY(), 1.5f);
+                        meteringAreas.add(new Camera.Area(meteringRect, 1000));
+
+                        mImpl.setMeteringAndFocusAreas(meteringAreas, focusAreas);
+                        Log.d(TAG, "Focus Area size: " + focusAreaSize);
+                                Log.d(TAG, event.getX() + " " + event.getY() + " size:" + getWidth() + "x" + getHeight() + " Rect: " + areaRect + "Focus Rect:" + focusRect +"Metering Rect: " +meteringRect);
+                    }
+                    return false;
+                }
+            });
+
+        }
+    }
+
+    /**
+     * Convert touch position x:y to {@link Camera.Area} position -1000:-1000 to 1000:1000.
+     * <p>
+     * Rotate, scale and translate touch rectangle using matrix configured in
+     */
+    private Rect calculateTapArea(float x, float y, float coefficient) {
+        int areaSize = Float.valueOf(focusAreaSize * coefficient).intValue();
+
+        int left = clamp((int) x - areaSize / 2, 0, getWidth() - areaSize);
+        int top = clamp((int) y - areaSize / 2, 0, getHeight() - areaSize);
+
+        RectF rectF = new RectF(left, top, left + areaSize, top + areaSize);
+        //matrix.mapRect(rectF);
+
+        return new Rect(Math.round(rectF.left), Math.round(rectF.top), Math.round(rectF.right), Math.round(rectF.bottom));
+    }
+
+    private int clamp(int x, int min, int max) {
+        if (x > max) {
+            return max;
+        }
+        if (x < min) {
+            return min;
+        }
+        return x;
     }
 
     @Override
@@ -231,7 +334,7 @@ public class CameraView extends FrameLayout {
     public void start() {
         if (!mImpl.start()) {
             //store the state ,and restore this state after fall back o Camera1
-            Parcelable state=onSaveInstanceState();
+            Parcelable state = onSaveInstanceState();
             // Camera2 uses legacy hardware layer; fall back to Camera1
             mImpl = new Camera1(mCallbacks, createPreviewImpl(getContext()));
             onRestoreInstanceState(state);
@@ -521,6 +624,8 @@ public class CameraView extends FrameLayout {
          */
         public void onPictureTaken(CameraView cameraView, byte[] data) {
         }
+
     }
 
 }
+

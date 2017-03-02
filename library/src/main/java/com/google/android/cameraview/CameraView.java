@@ -36,6 +36,8 @@ import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.FrameLayout;
+import android.widget.ImageView;
+import android.widget.RelativeLayout;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -176,6 +178,12 @@ public class CameraView extends FrameLayout {
                     float eY = event.getY() - radius - delta;
                     float vector = (float) Math.sqrt(eX * eX + eY * eY);
                     if (vector < radius) {
+                        ImageView focus = new ImageView(getContext());
+                        focus.setImageResource(R.drawable.focus_circle);
+                        RelativeLayout.LayoutParams layoutParams = new RelativeLayout.LayoutParams(300, 300);
+                        layoutParams.setMargins(400,400,400,400);
+                        addView(focus, layoutParams);
+
                         int rectXMiddle = (int) (1000 * eX / (getWidth() / 2));
                         int rectYMiddle = (int) (1000 * eX / (getHeight() / 2));
                         int halfAreaSide = 150;

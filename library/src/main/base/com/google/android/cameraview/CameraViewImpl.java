@@ -17,10 +17,8 @@
 package com.google.android.cameraview;
 
 import android.hardware.Camera;
-import android.view.View;
 
 import java.util.List;
-import java.util.Set;
 
 abstract class CameraViewImpl {
 
@@ -33,13 +31,6 @@ abstract class CameraViewImpl {
         mPreview = preview;
     }
 
-    View getView() {
-        return mPreview.getView();
-    }
-
-    /**
-     * @return {@code true} if the implementation was able to start the camera session.
-     */
     abstract boolean start();
 
     abstract void stop();
@@ -49,15 +40,6 @@ abstract class CameraViewImpl {
     abstract void setFacing(int facing);
 
     abstract int getFacing();
-
-    abstract Set<AspectRatio> getSupportedAspectRatios();
-
-    /**
-     * @return {@code true} if the aspect ratio was changed.
-     */
-    abstract boolean setAspectRatio(AspectRatio ratio);
-
-    abstract AspectRatio getAspectRatio();
 
     abstract void setAutoFocus(boolean autoFocus);
 
@@ -72,6 +54,10 @@ abstract class CameraViewImpl {
     abstract void setDisplayOrientation(int displayOrientation);
 
     abstract void setMeteringAndFocusAreas(List<Camera.Area> meteringAndFocusAreas);
+
+    abstract Size getCaptureResolution();
+
+    abstract Size getPreviewResolution();
 
     interface Callback {
 

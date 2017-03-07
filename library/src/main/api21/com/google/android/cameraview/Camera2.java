@@ -248,32 +248,6 @@ class Camera2 extends CameraViewImpl {
     }
 
     @Override
-    Set<AspectRatio> getSupportedAspectRatios() {
-        return mPreviewSizes.ratios();
-    }
-
-    @Override
-    boolean setAspectRatio(AspectRatio ratio) {
-        if (ratio == null || ratio.equals(mAspectRatio) ||
-                !mPreviewSizes.ratios().contains(ratio)) {
-            // TODO: Better error handling
-            return false;
-        }
-        mAspectRatio = ratio;
-        if (mCaptureSession != null) {
-            mCaptureSession.close();
-            mCaptureSession = null;
-            startCaptureSession();
-        }
-        return true;
-    }
-
-    @Override
-    AspectRatio getAspectRatio() {
-        return mAspectRatio;
-    }
-
-    @Override
     void setAutoFocus(boolean autoFocus) {
         if (mAutoFocus == autoFocus) {
             return;
@@ -341,6 +315,16 @@ class Camera2 extends CameraViewImpl {
     void setMeteringAndFocusAreas(List<Camera.Area> meteringAndFocusAreas) {
         //TODO: Implement
         throw new RuntimeException("Set Metering and focus areas is not Supported");
+    }
+
+    @Override
+    Size getCaptureResolution() {
+        return null;
+    }
+
+    @Override
+    Size getPreviewResolution() {
+        return null;
     }
 
     /**
@@ -459,7 +443,7 @@ class Camera2 extends CameraViewImpl {
             return;
         }
         Size previewSize = chooseOptimalSize();
-        mPreview.setBufferSize(previewSize.getWidth(), previewSize.getHeight());
+//        mPreview.setBufferSize(previewSize.getWidth(), previewSize.getHeight());
         Surface surface = mPreview.getSurface();
         try {
             mPreviewRequestBuilder = mCamera.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);

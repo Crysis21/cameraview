@@ -49,6 +49,8 @@ class TextureViewPreview extends PreviewImpl {
                 setSize(width, height);
                 configureTransform();
                 dispatchSurfaceChanged();
+                setTruePreviewSize(mTrueWidth, mTrueHeight);
+
             }
 
             @Override
@@ -64,11 +66,11 @@ class TextureViewPreview extends PreviewImpl {
     }
 
     // This method is called only from Camera2.
-    @TargetApi(15)
-    @Override
-    void setBufferSize(int width, int height) {
-        mTextureView.getSurfaceTexture().setDefaultBufferSize(width, height);
-    }
+//    @TargetApi(15)
+//    @Override
+//    void setBufferSize(int width, int height) {
+//        mTextureView.getSurfaceTexture().setDefaultBufferSize(width, height);
+//    }
 
     @Override
     Surface getSurface() {
@@ -95,6 +97,16 @@ class TextureViewPreview extends PreviewImpl {
         mDisplayOrientation = displayOrientation;
         configureTransform();
     }
+
+    @TargetApi(15)
+    @Override
+    void setTruePreviewSize(int width, int height) {
+        super.setTruePreviewSize(width, height);
+        if (mTextureView.getSurfaceTexture() != null) {
+            mTextureView.getSurfaceTexture().setDefaultBufferSize(width, height);
+        }
+    }
+
 
     @Override
     boolean isReady() {

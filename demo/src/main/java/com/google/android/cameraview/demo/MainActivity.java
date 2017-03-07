@@ -189,10 +189,10 @@ public class MainActivity extends AppCompatActivity implements
         switch (item.getItemId()) {
             case R.id.aspect_ratio:
                 if (mCameraView != null) {
-                    final Set<AspectRatio> ratios = mCameraView.getSupportedAspectRatios();
-                    final AspectRatio currentRatio = mCameraView.getAspectRatio();
-                    AspectRatioFragment.newInstance(ratios, currentRatio)
-                            .show(getSupportFragmentManager(), FRAGMENT_DIALOG);
+//                    final Set<AspectRatio> ratios = mCameraView.getSupportedAspectRatios();
+//                    final AspectRatio currentRatio = mCameraView.getAspectRatio();
+//                    AspectRatioFragment.newInstance(ratios, currentRatio)
+//                            .show(getSupportFragmentManager(), FRAGMENT_DIALOG);
                 }
                 break;
             case R.id.switch_flash:
@@ -216,10 +216,10 @@ public class MainActivity extends AppCompatActivity implements
 
     @Override
     public void onAspectRatioSelected(@NonNull AspectRatio ratio) {
-        if (mCameraView != null) {
-            Toast.makeText(this, ratio.toString(), Toast.LENGTH_SHORT).show();
-            mCameraView.setAspectRatio(ratio);
-        }
+//        if (mCameraView != null) {
+//            Toast.makeText(this, ratio.toString(), Toast.LENGTH_SHORT).show();
+//            mCameraView.setAspectRatio(ratio);
+//        }
     }
 
     private Handler getBackgroundHandler() {

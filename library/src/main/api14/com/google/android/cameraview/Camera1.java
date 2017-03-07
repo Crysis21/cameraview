@@ -25,11 +25,15 @@ import android.support.annotation.NonNull;
 import android.support.v4.util.SparseArrayCompat;
 import android.util.Log;
 import android.view.SurfaceHolder;
+import android.view.View;
 
 import java.io.IOException;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.SortedSet;
+import java.util.TreeSet;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -42,6 +46,8 @@ class Camera1 extends CameraViewImpl {
     private static final int INVALID_CAMERA_ID = -1;
 
     private static final SparseArrayCompat<String> FLASH_MODES = new SparseArrayCompat<>();
+    private Size mPreviewSize;
+    private Size mCaptureSize;
 
     static {
         FLASH_MODES.put(Constants.FLASH_OFF, Camera.Parameters.FLASH_MODE_OFF);
@@ -166,35 +172,6 @@ class Camera1 extends CameraViewImpl {
     }
 
     @Override
-    Set<AspectRatio> getSupportedAspectRatios() {
-        return mPreviewSizes.ratios();
-    }
-
-    @Override
-    boolean setAspectRatio(AspectRatio ratio) {
-        if (mAspectRatio == null || !isCameraOpened()) {
-            // Handle this later when camera is opened
-            mAspectRatio = ratio;
-            return true;
-        } else if (!mAspectRatio.equals(ratio)) {
-            final Set<Size> sizes = mPreviewSizes.sizes(ratio);
-            if (sizes == null) {
-                throw new UnsupportedOperationException(ratio + " is not supported");
-            } else {
-                mAspectRatio = ratio;
-                adjustCameraParameters();
-                return true;
-            }
-        }
-        return false;
-    }
-
-    @Override
-    AspectRatio getAspectRatio() {
-        return mAspectRatio;
-    }
-
-    @Override
     void setAutoFocus(boolean autoFocus) {
         if (mAutoFocus == autoFocus) {
             return;
@@ -313,6 +290,86 @@ class Camera1 extends CameraViewImpl {
         });
     }
 
+    @Override
+    Size getCaptureResolution() {
+        if (mCaptureSize == null && mCameraParameters != null) {
+            TreeSet<Size> sizes = new TreeSet<>();
+            for (Camera.Size size : mCameraParameters.getSupportedPictureSizes()) {
+                sizes.add(new Size(size.width, size.height));
+            }
+
+            TreeSet<AspectRatio> aspectRatios = findCommonAspectRatios(
+                    mCameraParameters.getSupportedPreviewSizes(),
+                    mCameraParameters.getSupportedPictureSizes()
+            );
+            AspectRatio targetRatio = aspectRatios.size() > 0 ? aspectRatios.last() : null;
+
+            Iterator<Size> descendingSizes = sizes.descendingIterator();
+            Size size;
+            while (descendingSizes.hasNext() && mCaptureSize == null) {
+                size = descendingSizes.next();
+                if (targetRatio == null || targetRatio.matches(size)) {
+                    mCaptureSize = size;
+                    break;
+                }
+            }
+        }
+
+        return mCaptureSize;
+    }
+
+    @Override
+    Size getPreviewResolution() {
+        if (mPreviewSize == null && mCameraParameters != null) {
+            TreeSet<Size> sizes = new TreeSet<>();
+            for (Camera.Size size : mCameraParameters.getSupportedPreviewSizes()) {
+                sizes.add(new Size(size.width, size.height));
+            }
+
+            TreeSet<AspectRatio> aspectRatios = findCommonAspectRatios(
+                    mCameraParameters.getSupportedPreviewSizes(),
+                    mCameraParameters.getSupportedPictureSizes()
+            );
+            AspectRatio targetRatio = aspectRatios.size() > 0 ? aspectRatios.last() : null;
+
+            Iterator<Size> descendingSizes = sizes.descendingIterator();
+            Size size;
+            while (descendingSizes.hasNext() && mPreviewSize == null) {
+                size = descendingSizes.next();
+                if (targetRatio == null || targetRatio.matches(size)) {
+                    mPreviewSize = size;
+                    break;
+                }
+            }
+        }
+
+        return mPreviewSize;
+    }
+
+    private TreeSet<AspectRatio> findCommonAspectRatios(List<Camera.Size> previewSizes, List<Camera.Size> captureSizes) {
+        Set<AspectRatio> previewAspectRatios = new HashSet<>();
+        for (Camera.Size size : previewSizes) {
+            if (size.width >= CameraView.Internal.screenHeight && size.height >= CameraView.Internal.screenWidth) {
+                previewAspectRatios.add(AspectRatio.of(size.width, size.height));
+            }
+        }
+
+        Set<AspectRatio> captureAspectRatios = new HashSet<>();
+        for (Camera.Size size : captureSizes) {
+            captureAspectRatios.add(AspectRatio.of(size.width, size.height));
+        }
+
+        TreeSet<AspectRatio> output = new TreeSet<>();
+        for (AspectRatio aspectRatio : previewAspectRatios) {
+            if (captureAspectRatios.contains(aspectRatio)) {
+                output.add(aspectRatio);
+            }
+        }
+
+        return output;
+    }
+
+
     /**
      * This rewrites {@link #mCameraId} and {@link #mCameraInfo}.
      */
@@ -364,6 +421,21 @@ class Camera1 extends CameraViewImpl {
     }
 
     void adjustCameraParameters() {
+
+        mPreview.setTruePreviewSize(
+                getPreviewResolution().getWidth(),
+                getPreviewResolution().getHeight()
+        );
+
+//        mCameraParameters.setRotation(calcCameraRotation(mDisplayOrientation));
+
+
+//        setAutoFocusInternal(mAutoFocus);
+//        setFlash(mFlash);
+
+//        mCamera.setParameters(mCameraParameters);
+
+//
         SortedSet<Size> sizes = mPreviewSizes.sizes(mAspectRatio);
         if (sizes == null) { // Not supported
             mAspectRatio = chooseAspectRatio();
@@ -377,7 +449,12 @@ class Camera1 extends CameraViewImpl {
             if (mShowingPreview) {
                 mCamera.stopPreview();
             }
-            mCameraParameters.setPreviewSize(size.getWidth(), size.getHeight());
+
+            mCameraParameters.setPreviewSize(
+                    getPreviewResolution().getWidth(),
+                    getPreviewResolution().getHeight()
+            );
+
             mCameraParameters.setPictureSize(pictureSize.getWidth(), pictureSize.getHeight());
             mCameraParameters.setRotation(calcCameraRotation(mDisplayOrientation));
             setAutoFocusInternal(mAutoFocus);

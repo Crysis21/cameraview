@@ -1,29 +1,10 @@
-/*
- * Copyright (C) 2016 The Android Open Source Project
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package com.google.android.cameraview;
 
+import android.graphics.SurfaceTexture;
 import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.View;
 
-
-/**
- * Encapsulates all the operations related to camera preview in a backward-compatible manner.
- */
 abstract class PreviewImpl {
 
     interface Callback {
@@ -33,8 +14,10 @@ abstract class PreviewImpl {
     private Callback mCallback;
 
     private int mWidth;
-
     private int mHeight;
+
+    protected int mTrueWidth;
+    protected int mTrueHeight;
 
     void setCallback(Callback callback) {
         mCallback = callback;
@@ -58,16 +41,16 @@ abstract class PreviewImpl {
         return null;
     }
 
-    Object getSurfaceTexture() {
+    SurfaceTexture getSurfaceTexture() {
         return null;
-    }
-
-    void setBufferSize(int width, int height) {
     }
 
     void setSize(int width, int height) {
         mWidth = width;
         mHeight = height;
+
+        // Refresh true preview size to adjust scaling
+        setTruePreviewSize(mTrueWidth, mTrueHeight);
     }
 
     int getWidth() {
@@ -76,6 +59,38 @@ abstract class PreviewImpl {
 
     int getHeight() {
         return mHeight;
+    }
+
+    void setTruePreviewSize(int width, int height) {
+        this.mTrueWidth = width;
+        this.mTrueHeight = height;
+
+        if (width != 0 && height != 0) {
+            AspectRatio aspectRatio = AspectRatio.of(width, height);
+            int targetHeight = (int) (getView().getWidth() * aspectRatio.toFloat());
+            float scaleY;
+            if (getView().getHeight() > 0) {
+                scaleY = (float) targetHeight / (float) getView().getHeight();
+            } else {
+                scaleY = 1;
+            }
+
+            if (scaleY > 1) {
+                getView().setScaleX(1);
+                getView().setScaleY(scaleY);
+            } else {
+                getView().setScaleX(1 / scaleY);
+                getView().setScaleY(1);
+            }
+        }
+    }
+
+    int getTrueWidth() {
+        return mTrueWidth;
+    }
+
+    int getTrueHeight() {
+        return mTrueHeight;
     }
 
 }

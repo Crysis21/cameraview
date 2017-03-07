@@ -123,17 +123,19 @@ public class CameraView extends FrameLayout {
         // Internal setup
         final PreviewImpl preview = createPreviewImpl(context);
         mCallbacks = new CallbackBridge();
-        //if (Build.VERSION.SDK_INT < 21) {
-        mImpl = new Camera1(mCallbacks, preview);
-        // } else if (Build.VERSION.SDK_INT < 23) {
-        //  mImpl = new Camera2(mCallbacks, preview, context);
-        //} else {
-        // mImpl = new Camera2Api23(mCallbacks, preview, context);
-        //}
+        if (Build.VERSION.SDK_INT < 21) {
+            mImpl = new Camera1(mCallbacks, preview);
+        } else if (Build.VERSION.SDK_INT < 23) {
+            mImpl = new Camera2(mCallbacks, preview, context);
+        } else {
+            mImpl = new Camera2Api23(mCallbacks, preview, context);
+        }
         // Attributes
-        TypedArray a = context.obtainStyledAttributes(attrs, R.styleable.CameraView, defStyleAttr,
+        TypedArray a = context.obtainStyledAttributes(attrs, R.styleable.CameraView,
+                defStyleAttr,
                 R.style.Widget_CameraView);
-        mAdjustViewBounds = a.getBoolean(R.styleable.CameraView_android_adjustViewBounds, false);
+        mAdjustViewBounds = a.getBoolean(R.styleable.CameraView_android_adjustViewBounds,
+                false);
         setFacing(a.getInt(R.styleable.CameraView_facing, FACING_BACK));
         String aspectRatio = a.getString(R.styleable.CameraView_aspectRatio);
         setAutoFocus(a.getBoolean(R.styleable.CameraView_autoFocus, true));
@@ -178,8 +180,9 @@ public class CameraView extends FrameLayout {
                                 Math.min(rectYMiddle + halfAreaSide, 1000));
                         meteringAreas.add(new Camera.Area(areaRect, 1000));
                         mImpl.setMeteringAndFocusAreas(meteringAreas);
-                        Log.d(TAG, event.getX() + " " + event.getY() + " size:" + getWidth() + "x"
-                                + getHeight() + " Rect: " + areaRect);
+                        Log.d(TAG,
+                                event.getX() + " " + event.getY() + " size:" + getWidth() + "x"
+                                        + getHeight() + " Rect: " + areaRect);
                     }
                     return false;
                 }

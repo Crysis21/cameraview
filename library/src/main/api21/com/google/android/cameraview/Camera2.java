@@ -37,10 +37,14 @@ import android.util.SparseIntArray;
 import android.view.Surface;
 
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.SortedSet;
+import java.util.TreeSet;
 
 @TargetApi(21)
 class Camera2 extends CameraViewImpl {
@@ -48,6 +52,9 @@ class Camera2 extends CameraViewImpl {
     private static final String TAG = "Camera2";
 
     private static final SparseIntArray INTERNAL_FACINGS = new SparseIntArray();
+
+    private Size mCaptureSize;
+    private Size mPreviewSize;
 
     static {
         INTERNAL_FACINGS.put(Constants.FACING_BACK, CameraCharacteristics.LENS_FACING_BACK);
@@ -314,19 +321,120 @@ class Camera2 extends CameraViewImpl {
     @Override
     void setMeteringAndFocusAreas(List<Camera.Area> meteringAndFocusAreas) {
         //TODO: Implement
-        throw new RuntimeException("Set Metering and focus areas is not Supported");
+//        throw new RuntimeException("Set Metering and focus areas is not Supported");
     }
 
     @Override
     Size getCaptureResolution() {
-        return null;
+        if (mCaptureSize == null && mCameraCharacteristics != null) {
+            TreeSet<Size> sizes = new TreeSet<>();
+            sizes.addAll(getAvailableCaptureResolutions());
+
+            TreeSet<AspectRatio> aspectRatios = new CommonAspectRatioFilter(
+                    getAvailablePreviewResolutions(),
+                    getAvailableCaptureResolutions()
+            ).filter();
+            AspectRatio targetRatio = aspectRatios.size() > 0 ? aspectRatios.last() : null;
+
+            Iterator<Size> descendingSizes = sizes.descendingIterator();
+            Size size;
+            while (descendingSizes.hasNext() && mCaptureSize == null) {
+                size = descendingSizes.next();
+                if (targetRatio == null || targetRatio.matches(size)) {
+                    mCaptureSize = size;
+                    break;
+                }
+            }
+        }
+
+        return mCaptureSize;
     }
 
     @Override
     Size getPreviewResolution() {
-        return null;
+        if (mPreviewSize == null && mCameraCharacteristics != null) {
+            TreeSet<Size> sizes = new TreeSet<>();
+            sizes.addAll(getAvailablePreviewResolutions());
+
+
+            TreeSet<AspectRatio> aspectRatios = findCommonAspectRatios(
+                    getAvailablePreviewResolutions(),
+                    getAvailableCaptureResolutions()
+            );
+
+            AspectRatio targetRatio = aspectRatios.size() > 0 ? aspectRatios.last() : null;
+
+            Iterator<Size> descendingSizes = sizes.descendingIterator();
+            Size size;
+            while (descendingSizes.hasNext() && mPreviewSize == null) {
+                size = descendingSizes.next();
+                if (targetRatio == null || targetRatio.matches(size)) {
+
+                    mPreviewSize = size;
+                }
+            }
+        }
+
+        return mPreviewSize;
     }
 
+
+    private TreeSet<AspectRatio> findCommonAspectRatios(List<Size> previewSizes, List<Size> captureSizes) {
+        Set<AspectRatio> previewAspectRatios = new HashSet<>();
+        for (Size size : previewSizes) {
+            if (size.getWidth() >= CameraView.Internal.screenHeight && size.getWidth() >= CameraView.Internal.screenWidth) {
+                previewAspectRatios.add(AspectRatio.of(size.getWidth(), size.getHeight()));
+            }
+        }
+
+        Set<AspectRatio> captureAspectRatios = new HashSet<>();
+        for (Size size : captureSizes) {
+            captureAspectRatios.add(AspectRatio.of(size.getWidth(), size.getHeight()));
+        }
+
+        TreeSet<AspectRatio> output = new TreeSet<>();
+        for (AspectRatio aspectRatio : previewAspectRatios) {
+            if (captureAspectRatios.contains(aspectRatio)) {
+                output.add(aspectRatio);
+            }
+        }
+
+        return output;
+    }
+
+    private List<Size> getAvailableCaptureResolutions() {
+        List<Size> output = new ArrayList<>();
+
+        if (mCameraCharacteristics != null) {
+            StreamConfigurationMap map = mCameraCharacteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
+            if (map == null) {
+                throw new IllegalStateException("Failed to get configuration map: " + mCameraId);
+            }
+
+            for (android.util.Size size : map.getOutputSizes(ImageFormat.JPEG)) {
+                output.add(new Size(size.getWidth(), size.getHeight()));
+            }
+        }
+
+        return output;
+    }
+
+    private List<Size> getAvailablePreviewResolutions() {
+        List<Size> output = new ArrayList<>();
+
+        if (mCameraCharacteristics != null) {
+            StreamConfigurationMap map = mCameraCharacteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
+            if (map == null) {
+                throw new IllegalStateException("Failed to get configuration map: " + mCameraId);
+            }
+
+            for (android.util.Size size : map.getOutputSizes(mPreview.getOutputClass())) {
+                output.add(new Size(size.getWidth(), size.getHeight()));
+            }
+        }
+
+        return output;
+    }
     /**
      * <p>Chooses a camera ID by the specified camera facing ({@link #mFacing}).</p>
      * <p>This rewrites {@link #mCameraId}, {@link #mCameraCharacteristics}, and optionally
@@ -443,8 +551,10 @@ class Camera2 extends CameraViewImpl {
             return;
         }
         Size previewSize = chooseOptimalSize();
+        mPreview.setTruePreviewSize(previewSize.getWidth(), previewSize.getHeight());
 //        mPreview.setBufferSize(previewSize.getWidth(), previewSize.getHeight());
         Surface surface = mPreview.getSurface();
+//        mPreview.setTruePreviewSize(previewSize.getWidth(), previewSize.getHeight());
         try {
             mPreviewRequestBuilder = mCamera.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
             mPreviewRequestBuilder.addTarget(surface);

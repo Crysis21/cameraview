@@ -50,7 +50,7 @@ abstract class PreviewImpl {
         mHeight = height;
 
         // Refresh true preview size to adjust scaling
-        setTruePreviewSize(mTrueWidth, mTrueHeight);
+        setTruePreviewSize(width, height);
     }
 
     int getWidth() {

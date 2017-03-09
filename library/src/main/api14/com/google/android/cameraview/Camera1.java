@@ -16,8 +16,12 @@
 
 package com.google.android.cameraview;
 
+import static com.google.android.cameraview.Constants.FACING_BACK;
+import static com.google.android.cameraview.Constants.FACING_FRONT;
+
 import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
+import android.graphics.Matrix;
 import android.graphics.SurfaceTexture;
 import android.hardware.Camera;
 import android.os.Build;
@@ -25,7 +29,6 @@ import android.support.annotation.NonNull;
 import android.support.v4.util.SparseArrayCompat;
 import android.util.Log;
 import android.view.SurfaceHolder;
-import android.view.View;
 
 import java.io.IOException;
 import java.util.HashSet;
@@ -78,6 +81,9 @@ class Camera1 extends CameraViewImpl {
 
     private boolean mAutoFocus;
 
+    private Matrix rotateMatrix;
+
+    @Facing
     private int mFacing;
 
     private int mFlash;
@@ -167,6 +173,7 @@ class Camera1 extends CameraViewImpl {
     }
 
     @Override
+    @Facing
     int getFacing() {
         return mFacing;
     }
@@ -179,6 +186,18 @@ class Camera1 extends CameraViewImpl {
         if (setAutoFocusInternal(autoFocus)) {
             mCamera.setParameters(mCameraParameters);
         }
+    }
+
+    @Override
+    @Facing
+    int toggleFacing() {
+        int facing = getFacing();
+        if (facing == FACING_BACK) {
+            setFacing(FACING_FRONT);
+        } else {
+            setFacing(FACING_BACK);
+        }
+        return getFacing();
     }
 
     @Override
@@ -206,7 +225,25 @@ class Camera1 extends CameraViewImpl {
     }
 
     @Override
+    int toggleFlash() {
+        switch (mFlash) {
+            case Constants.FLASH_AUTO:
+                setFlash(Constants.FLASH_ON);
+                break;
+            case Constants.FLASH_OFF:
+                setFlash(Constants.FLASH_AUTO);
+                break;
+            case Constants.FLASH_ON:
+                setFacing(Constants.FLASH_OFF);
+                break;
+        }
+        return mFlash;
+    }
+
+    @Override
     void takePicture() {
+        rotateMatrix = new Matrix();
+        rotateMatrix.postRotate(cameraEye, 0.5f, 0.5f);
         if (!isCameraOpened()) {
             throw new IllegalStateException(
                     "Camera is not ready. Call start() before takePicture().");
@@ -233,11 +270,12 @@ class Camera1 extends CameraViewImpl {
                         @Override
                         public void onPictureTaken(byte[] data, Camera camera) {
                             camera.cancelAutoFocus();
-                            mCallback.onPictureTaken(data);
+                            mCallback.onPictureTaken(data, rotateMatrix);
                         }
                     });
-                }catch (RuntimeException ex){
-                    Log.e(TAG, "Take Picture Thrown Ex",ex);
+                } catch (RuntimeException ex) {
+                    ex.printStackTrace();
+                    Log.e(TAG, "Take Picture Thrown Ex", ex);
                 }
             }
         });
@@ -245,29 +283,15 @@ class Camera1 extends CameraViewImpl {
 
     @Override
     void setDisplayOrientation(int displayOrientation) {
-        if (mDisplayOrientation == displayOrientation) {
-            return;
-        }
         mDisplayOrientation = displayOrientation;
-        if (isCameraOpened()) {
-            int cameraRotation = calcCameraRotation(displayOrientation);
-            mCameraParameters.setRotation(cameraRotation);
-            mCamera.setParameters(mCameraParameters);
-            final boolean needsToStopPreview = mShowingPreview && Build.VERSION.SDK_INT < 14;
-            if (needsToStopPreview) {
-                mCamera.stopPreview();
-            }
-            mCamera.setDisplayOrientation(cameraRotation);
-            if (needsToStopPreview) {
-                mCamera.startPreview();
-            }
-        }
+        adjustCameraParameters();
     }
 
     @Override
     @TargetApi(Build.VERSION_CODES.ICE_CREAM_SANDWICH)
     void setMeteringAndFocusAreas(@NonNull List<Camera.Area> meteringAndFocusAreas) {
-        if (mCameraParameters.getSupportedFocusModes().contains(Camera.Parameters.FOCUS_MODE_MACRO)){
+        if (mCameraParameters.getSupportedFocusModes().contains(
+                Camera.Parameters.FOCUS_MODE_MACRO)) {
             mCameraParameters.setFocusMode(Camera.Parameters.FOCUS_MODE_MACRO);
         }
         if (meteringAndFocusAreas.size() > 1) {
@@ -346,10 +370,12 @@ class Camera1 extends CameraViewImpl {
         return mPreviewSize;
     }
 
-    private TreeSet<AspectRatio> findCommonAspectRatios(List<Camera.Size> previewSizes, List<Camera.Size> captureSizes) {
+    private TreeSet<AspectRatio> findCommonAspectRatios(List<Camera.Size> previewSizes,
+            List<Camera.Size> captureSizes) {
         Set<AspectRatio> previewAspectRatios = new HashSet<>();
         for (Camera.Size size : previewSizes) {
-            if (size.width >= CameraView.Internal.screenHeight && size.height >= CameraView.Internal.screenWidth) {
+            if (size.width >= CameraView.Internal.screenHeight
+                    && size.height >= CameraView.Internal.screenWidth) {
                 previewAspectRatios.add(AspectRatio.of(size.width, size.height));
             }
         }
@@ -405,7 +431,11 @@ class Camera1 extends CameraViewImpl {
             mAspectRatio = Constants.DEFAULT_ASPECT_RATIO;
         }
         adjustCameraParameters();
-        mCamera.setDisplayOrientation(calcCameraRotation(mDisplayOrientation));
+
+        mCamera.setDisplayOrientation(
+                calculateCameraRotation(mDisplayOrientation)
+        );
+
         mCallback.onCameraOpened();
     }
 
@@ -420,22 +450,14 @@ class Camera1 extends CameraViewImpl {
         return r;
     }
 
-    void adjustCameraParameters() {
+    int cameraEye = 0;
 
+    void adjustCameraParameters() {
         mPreview.setTruePreviewSize(
                 getPreviewResolution().getWidth(),
                 getPreviewResolution().getHeight()
         );
 
-//        mCameraParameters.setRotation(calcCameraRotation(mDisplayOrientation));
-
-
-//        setAutoFocusInternal(mAutoFocus);
-//        setFlash(mFlash);
-
-//        mCamera.setParameters(mCameraParameters);
-
-//
         SortedSet<Size> sizes = mPreviewSizes.sizes(mAspectRatio);
         if (sizes == null) { // Not supported
             mAspectRatio = chooseAspectRatio();
@@ -456,7 +478,9 @@ class Camera1 extends CameraViewImpl {
             );
 
             mCameraParameters.setPictureSize(pictureSize.getWidth(), pictureSize.getHeight());
-            mCameraParameters.setRotation(calcCameraRotation(mDisplayOrientation));
+            cameraEye = calculateCameraRotation(mDisplayOrientation) + (mFacing == FACING_FRONT ? 180 : 0);
+
+            mCameraParameters.setRotation(cameraEye);
             setAutoFocusInternal(mAutoFocus);
             setFlashInternal(mFlash);
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
@@ -467,6 +491,8 @@ class Camera1 extends CameraViewImpl {
                 mCamera.startPreview();
             }
         }
+//        CameraUtil.setCameraDisplayOrientation(mPreview.getView().getContext(), mCameraId, mCamera);
+
     }
 
     @SuppressWarnings("SuspiciousNameCombination")
@@ -504,12 +530,21 @@ class Camera1 extends CameraViewImpl {
         }
     }
 
+    private int calculateCameraRotation(int rotation) {
+        if (mCameraInfo.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
+            return (360 - (mCameraInfo.orientation + rotation) % 360) % 360;
+        } else {
+            return (mCameraInfo.orientation - rotation + 360) % 360;
+        }
+    }
+
     private int calcCameraRotation(int rotation) {
         if (mCameraInfo.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
             return (360 - (mCameraInfo.orientation + rotation) % 360) % 360;
         } else {  // back-facing
             return (mCameraInfo.orientation - rotation + 360) % 360;
         }
+//        return rotation;
     }
 
     /**

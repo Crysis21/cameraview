@@ -30,11 +30,9 @@ import static com.google.android.cameraview.CameraViewMatchers.hasAspectRatio;
 
 import static junit.framework.Assert.assertFalse;
 
-import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 
 import android.graphics.Bitmap;
 import android.os.SystemClock;
@@ -287,8 +285,8 @@ public class CameraViewTest {
      */
     private static class CameraViewIdlingResource implements IdlingResource, Closeable {
 
-        private final CameraView.Callback mCallback
-                = new CameraView.Callback() {
+        private final CameraView.CameraListener mCameraListener
+                = new CameraView.CameraListener() {
 
             @Override
             public void onCameraOpened(CameraView cameraView) {
@@ -314,13 +312,13 @@ public class CameraViewTest {
 
         public CameraViewIdlingResource(CameraView cameraView) {
             mCameraView = cameraView;
-            mCameraView.addCallback(mCallback);
+            mCameraView.addCallback(mCameraListener);
             mIsIdleNow = mCameraView.isCameraOpened();
         }
 
         @Override
         public void close() throws IOException {
-            mCameraView.removeCallback(mCallback);
+            mCameraView.removeCallback(mCameraListener);
         }
 
         @Override
@@ -342,8 +340,8 @@ public class CameraViewTest {
 
     private static class TakePictureIdlingResource implements IdlingResource, Closeable {
 
-        private final CameraView.Callback mCallback
-                = new CameraView.Callback() {
+        private final CameraView.CameraListener mCameraListener
+                = new CameraView.CameraListener() {
             @Override
             public void onPictureTaken(CameraView cameraView, byte[] data) {
                 if (!mIsIdleNow) {
@@ -367,12 +365,12 @@ public class CameraViewTest {
 
         public TakePictureIdlingResource(CameraView cameraView) {
             mCameraView = cameraView;
-            mCameraView.addCallback(mCallback);
+            mCameraView.addCallback(mCameraListener);
         }
 
         @Override
         public void close() throws IOException {
-            mCameraView.removeCallback(mCallback);
+            mCameraView.removeCallback(mCameraListener);
         }
 
         @Override

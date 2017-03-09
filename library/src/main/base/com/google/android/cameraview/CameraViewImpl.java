@@ -16,6 +16,7 @@
 
 package com.google.android.cameraview;
 
+import android.graphics.Matrix;
 import android.hardware.Camera;
 
 import java.util.List;
@@ -43,11 +44,17 @@ abstract class CameraViewImpl {
 
     abstract void setAutoFocus(boolean autoFocus);
 
+    @Facing
+    abstract int toggleFacing();
+
     abstract boolean getAutoFocus();
 
     abstract void setFlash(int flash);
 
     abstract int getFlash();
+
+    @Flash
+    abstract int toggleFlash();
 
     abstract void takePicture();
 
@@ -65,7 +72,7 @@ abstract class CameraViewImpl {
 
         void onCameraClosed();
 
-        void onPictureTaken(byte[] data);
+        void onPictureTaken(byte[] data, Matrix rotateMatrix);
 
     }
 

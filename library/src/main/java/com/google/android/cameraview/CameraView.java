@@ -16,17 +16,21 @@
 
 package com.google.android.cameraview;
 
+import static com.google.android.cameraview.Constants.FACING_BACK;
+import static com.google.android.cameraview.Constants.FLASH_AUTO;
+import static com.google.android.cameraview.Constants.FLASH_OFF;
+
 import android.annotation.TargetApi;
 import android.app.Activity;
 import android.content.Context;
 import android.content.res.Resources;
 import android.content.res.TypedArray;
+import android.graphics.Matrix;
 import android.graphics.Rect;
 import android.hardware.Camera;
 import android.os.Build;
 import android.os.Parcel;
 import android.os.Parcelable;
-import android.support.annotation.IntDef;
 import android.support.annotation.NonNull;
 import android.support.v4.os.ParcelableCompat;
 import android.support.v4.os.ParcelableCompatCreatorCallbacks;
@@ -36,8 +40,6 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.widget.FrameLayout;
 
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -51,56 +53,11 @@ public class CameraView extends FrameLayout {
     }
 
     private static final String TAG = CameraView.class.getCanonicalName();
-    /**
-     * The camera device faces the opposite direction as the device's screen.
-     */
-    public static final int FACING_BACK = Constants.FACING_BACK;
 
-    /**
-     * The camera device faces the same direction as the device's screen.
-     */
-    public static final int FACING_FRONT = Constants.FACING_FRONT;
-
-    /**
-     * Direction the camera faces relative to device screen.
-     */
-    @IntDef({FACING_BACK, FACING_FRONT})
-    @Retention(RetentionPolicy.SOURCE)
-    public @interface Facing {
-    }
-
-    /**
-     * Flash will not be fired.
-     */
-    public static final int FLASH_OFF = Constants.FLASH_OFF;
-
-    /**
-     * Flash will always be fired during snapshot.
-     */
-    public static final int FLASH_ON = Constants.FLASH_ON;
-
-    /**
-     * Constant emission of light during preview, auto-focus and snapshot.
-     */
-    public static final int FLASH_TORCH = Constants.FLASH_TORCH;
-
-    /**
-     * Flash will be fired automatically when required.
-     */
-    public static final int FLASH_AUTO = Constants.FLASH_AUTO;
-
-    /**
-     * Flash will be fired in red-eye reduction mode.
-     */
-    public static final int FLASH_RED_EYE = Constants.FLASH_RED_EYE;
 
     /**
      * The mode for for the camera device's flash control
      */
-    @IntDef({FLASH_OFF, FLASH_ON, FLASH_TORCH, FLASH_AUTO, FLASH_RED_EYE})
-    public @interface Flash {
-    }
-
     CameraViewImpl mImpl;
 
     private final CallbackBridge mCallbacks;
@@ -139,7 +96,7 @@ public class CameraView extends FrameLayout {
         setFacing(a.getInt(R.styleable.CameraView_facing, FACING_BACK));
         String aspectRatio = a.getString(R.styleable.CameraView_aspectRatio);
         setAutoFocus(a.getBoolean(R.styleable.CameraView_autoFocus, true));
-        setFlash(a.getInt(R.styleable.CameraView_flash, Constants.FLASH_AUTO));
+        setFlash(a.getInt(R.styleable.CameraView_flash, FLASH_AUTO));
         a.recycle();
         // Display orientation detector
         mDisplayOrientationDetector = new DisplayOrientationDetector(context) {
@@ -318,21 +275,21 @@ public class CameraView extends FrameLayout {
     /**
      * Add a new callback.
      *
-     * @param callback The {@link Callback} to add.
-     * @see #removeCallback(Callback)
+     * @param cameraListener The {@link CameraListener} to add.
+     * @see #removeCallback(CameraListener)
      */
-    public void addCallback(@NonNull Callback callback) {
-        mCallbacks.add(callback);
+    public void addCallback(@NonNull CameraListener cameraListener) {
+        mCallbacks.add(cameraListener);
     }
 
     /**
      * Remove a callback.
      *
-     * @param callback The {@link Callback} to remove.
-     * @see #addCallback(Callback)
+     * @param cameraListener The {@link CameraListener} to remove.
+     * @see #addCallback(CameraListener)
      */
-    public void removeCallback(@NonNull Callback callback) {
-        mCallbacks.remove(callback);
+    public void removeCallback(@NonNull CameraListener cameraListener) {
+        mCallbacks.remove(cameraListener);
     }
 
     /**
@@ -356,12 +313,7 @@ public class CameraView extends FrameLayout {
         return mAdjustViewBounds;
     }
 
-    /**
-     * Chooses camera by the direction it faces.
-     *
-     * @param facing The camera facing. Must be either {@link #FACING_BACK} or
-     *               {@link #FACING_FRONT}.
-     */
+
     public void setFacing(@Facing int facing) {
         mImpl.setFacing(facing);
     }
@@ -375,6 +327,12 @@ public class CameraView extends FrameLayout {
     public int getFacing() {
         //noinspection WrongConstant
         return mImpl.getFacing();
+    }
+
+    @Facing
+    public int toggleFacing() {
+        if (mImpl == null) return FACING_BACK;
+        return mImpl.toggleFacing();
     }
 
     /**
@@ -418,9 +376,17 @@ public class CameraView extends FrameLayout {
         return mImpl.getFlash();
     }
 
+
+    @Flash
+    public int toggleFlash() {
+        if (mImpl == null) return FLASH_OFF;
+        return mImpl.toggleFlash();
+    }
+
+
     /**
      * Take a picture. The result will be returned to
-     * {@link Callback#onPictureTaken(CameraView, byte[])}.
+     * {@link CameraListener#onPictureTaken(CameraView, byte[], Matrix)}.
      */
     public void takePicture() {
         mImpl.takePicture();
@@ -428,19 +394,19 @@ public class CameraView extends FrameLayout {
 
     private class CallbackBridge implements CameraViewImpl.Callback {
 
-        private final ArrayList<Callback> mCallbacks = new ArrayList<>();
+        private final ArrayList<CameraListener> mCameraListeners = new ArrayList<>();
 
         private boolean mRequestLayoutOnOpen;
 
         CallbackBridge() {
         }
 
-        public void add(Callback callback) {
-            mCallbacks.add(callback);
+        public void add(CameraListener cameraListener) {
+            mCameraListeners.add(cameraListener);
         }
 
-        public void remove(Callback callback) {
-            mCallbacks.remove(callback);
+        public void remove(CameraListener cameraListener) {
+            mCameraListeners.remove(cameraListener);
         }
 
         @Override
@@ -449,22 +415,22 @@ public class CameraView extends FrameLayout {
                 mRequestLayoutOnOpen = false;
                 requestLayout();
             }
-            for (Callback callback : mCallbacks) {
-                callback.onCameraOpened(CameraView.this);
+            for (CameraListener cameraListener : mCameraListeners) {
+                cameraListener.onCameraOpened(CameraView.this);
             }
         }
 
         @Override
         public void onCameraClosed() {
-            for (Callback callback : mCallbacks) {
-                callback.onCameraClosed(CameraView.this);
+            for (CameraListener cameraListener : mCameraListeners) {
+                cameraListener.onCameraClosed(CameraView.this);
             }
         }
 
         @Override
-        public void onPictureTaken(byte[] data) {
-            for (Callback callback : mCallbacks) {
-                callback.onPictureTaken(CameraView.this, data);
+        public void onPictureTaken(byte[] data, Matrix rotateMatrix) {
+            for (CameraListener cameraListener : mCameraListeners) {
+                cameraListener.onPictureTaken(CameraView.this, data, rotateMatrix);
             }
         }
 
@@ -528,7 +494,7 @@ public class CameraView extends FrameLayout {
      * Callback for monitoring events about {@link CameraView}.
      */
     @SuppressWarnings("UnusedParameters")
-    public abstract static class Callback {
+    public abstract static class CameraListener {
 
         /**
          * Called when camera is opened.
@@ -552,7 +518,7 @@ public class CameraView extends FrameLayout {
          * @param cameraView The associated {@link CameraView}.
          * @param data       JPEG data.
          */
-        public void onPictureTaken(CameraView cameraView, byte[] data) {
+        public void onPictureTaken(CameraView cameraView, byte[] data, Matrix rotateMatrix) {
         }
 
     }

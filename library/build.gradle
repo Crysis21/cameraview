@@ -13,6 +13,11 @@
 // limitations under the License.
 
 apply plugin: 'com.android.library'
+apply plugin: 'maven'
+
+group = 'com.anaface'
+project.archivesBaseName = 'cameraview'
+version = '1.0.3'
 
 android {
     compileSdkVersion rootProject.ext.compileSdkVersion
@@ -51,3 +56,12 @@ dependencies {
         exclude module: 'support-annotations'
     }
 }
+
+uploadArchives {
+    repositories {
+        mavenDeployer {
+            repository url: 'file://' + new File(System.getProperty('user.home'), '.m2/repository').absolutePath
+        }
+    }
+}
+task install(dependsOn: uploadArchives)

@@ -16,18 +16,14 @@
 
 package com.google.android.cameraview;
 
+import static com.google.android.cameraview.Constants.FLASH_AUTO;
+import static com.google.android.cameraview.Constants.FLASH_OFF;
+import static com.google.android.cameraview.Constants.FLASH_ON;
+import static com.google.android.cameraview.Constants.FLASH_RED_EYE;
+import static com.google.android.cameraview.Constants.FLASH_TORCH;
 
-public interface Constants {
+import android.support.annotation.IntDef;
 
-    AspectRatio DEFAULT_ASPECT_RATIO = AspectRatio.of(4, 3);
-
-    int FACING_BACK = 0;
-    int FACING_FRONT = 1;
-
-    int FLASH_OFF = 0;
-    int FLASH_ON = 1;
-    int FLASH_TORCH = 2;
-    int FLASH_AUTO = 3;
-    int FLASH_RED_EYE = 4;
-
-}
+@IntDef({FLASH_OFF, FLASH_ON, FLASH_TORCH, FLASH_AUTO, FLASH_RED_EYE})
+    public @interface Flash {
+    }

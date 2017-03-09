@@ -16,6 +16,9 @@
 
 package com.google.android.cameraview;
 
+import static com.google.android.cameraview.Constants.FACING_BACK;
+import static com.google.android.cameraview.Constants.FACING_FRONT;
+
 import android.annotation.TargetApi;
 import android.content.Context;
 import android.graphics.ImageFormat;
@@ -57,8 +60,8 @@ class Camera2 extends CameraViewImpl {
     private Size mPreviewSize;
 
     static {
-        INTERNAL_FACINGS.put(Constants.FACING_BACK, CameraCharacteristics.LENS_FACING_BACK);
-        INTERNAL_FACINGS.put(Constants.FACING_FRONT, CameraCharacteristics.LENS_FACING_FRONT);
+        INTERNAL_FACINGS.put(FACING_BACK, CameraCharacteristics.LENS_FACING_BACK);
+        INTERNAL_FACINGS.put(FACING_FRONT, CameraCharacteristics.LENS_FACING_FRONT);
     }
 
     private final CameraManager mCameraManager;
@@ -160,7 +163,7 @@ class Camera2 extends CameraViewImpl {
                     ByteBuffer buffer = planes[0].getBuffer();
                     byte[] data = new byte[buffer.remaining()];
                     buffer.get(data);
-                    mCallback.onPictureTaken(data);
+                    mCallback.onPictureTaken(data, null);
                 }
             }
         }
@@ -250,6 +253,7 @@ class Camera2 extends CameraViewImpl {
     }
 
     @Override
+    @Facing
     int getFacing() {
         return mFacing;
     }
@@ -271,6 +275,18 @@ class Camera2 extends CameraViewImpl {
                 }
             }
         }
+    }
+
+    @Override
+    @Facing
+    int toggleFacing() {
+        int facing = getFacing();
+        if (facing == FACING_BACK) {
+            setFacing(FACING_FRONT);
+        } else {
+            setFacing(FACING_BACK);
+        }
+        return getFacing();
     }
 
     @Override
@@ -304,6 +320,23 @@ class Camera2 extends CameraViewImpl {
     }
 
     @Override
+    int toggleFlash() {
+        switch (mFlash) {
+            case Constants.FLASH_AUTO:
+                setFlash(Constants.FLASH_ON);
+                break;
+            case Constants.FLASH_OFF:
+                setFlash(Constants.FLASH_AUTO);
+                break;
+            case Constants.FLASH_ON:
+            default:
+                setFacing(Constants.FLASH_OFF);
+                break;
+        }
+        return mFlash;
+    }
+
+    @Override
     void takePicture() {
         if (mAutoFocus) {
             lockFocus();
@@ -321,7 +354,7 @@ class Camera2 extends CameraViewImpl {
     @Override
     void setMeteringAndFocusAreas(List<Camera.Area> meteringAndFocusAreas) {
         //TODO: Implement
-//        throw new RuntimeException("Set Metering and focus areas is not Supported");
+        throw new RuntimeException("Set Metering and focus areas is not Supported");
     }
 
     @Override
@@ -379,10 +412,12 @@ class Camera2 extends CameraViewImpl {
     }
 
 
-    private TreeSet<AspectRatio> findCommonAspectRatios(List<Size> previewSizes, List<Size> captureSizes) {
+    private TreeSet<AspectRatio> findCommonAspectRatios(List<Size> previewSizes,
+            List<Size> captureSizes) {
         Set<AspectRatio> previewAspectRatios = new HashSet<>();
         for (Size size : previewSizes) {
-            if (size.getWidth() >= CameraView.Internal.screenHeight && size.getWidth() >= CameraView.Internal.screenWidth) {
+            if (size.getWidth() >= CameraView.Internal.screenHeight
+                    && size.getWidth() >= CameraView.Internal.screenWidth) {
                 previewAspectRatios.add(AspectRatio.of(size.getWidth(), size.getHeight()));
             }
         }
@@ -406,7 +441,8 @@ class Camera2 extends CameraViewImpl {
         List<Size> output = new ArrayList<>();
 
         if (mCameraCharacteristics != null) {
-            StreamConfigurationMap map = mCameraCharacteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
+            StreamConfigurationMap map = mCameraCharacteristics.get(
+                    CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
             if (map == null) {
                 throw new IllegalStateException("Failed to get configuration map: " + mCameraId);
             }
@@ -423,7 +459,8 @@ class Camera2 extends CameraViewImpl {
         List<Size> output = new ArrayList<>();
 
         if (mCameraCharacteristics != null) {
-            StreamConfigurationMap map = mCameraCharacteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
+            StreamConfigurationMap map = mCameraCharacteristics.get(
+                    CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
             if (map == null) {
                 throw new IllegalStateException("Failed to get configuration map: " + mCameraId);
             }
@@ -435,6 +472,7 @@ class Camera2 extends CameraViewImpl {
 
         return output;
     }
+
     /**
      * <p>Chooses a camera ID by the specified camera facing ({@link #mFacing}).</p>
      * <p>This rewrites {@link #mCameraId}, {@link #mCameraCharacteristics}, and optionally
@@ -486,7 +524,7 @@ class Camera2 extends CameraViewImpl {
             }
             // The operation can reach here when the only camera device is an external one.
             // We treat it as facing back.
-            mFacing = Constants.FACING_BACK;
+            mFacing = FACING_BACK;
             return true;
         } catch (CameraAccessException e) {
             throw new RuntimeException("Failed to get a list of camera devices", e);
@@ -709,7 +747,7 @@ class Camera2 extends CameraViewImpl {
                     CameraCharacteristics.SENSOR_ORIENTATION);
             captureRequestBuilder.set(CaptureRequest.JPEG_ORIENTATION,
                     (sensorOrientation +
-                            mDisplayOrientation * (mFacing == Constants.FACING_FRONT ? 1 : -1) +
+                            mDisplayOrientation * (mFacing == FACING_FRONT ? 1 : -1) +
                             360) % 360);
             // Stop preview and capture a still picture.
             mCaptureSession.stopRepeating();

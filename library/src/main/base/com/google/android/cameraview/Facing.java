@@ -16,18 +16,15 @@
 
 package com.google.android.cameraview;
 
+import static com.google.android.cameraview.Constants.FACING_BACK;
+import static com.google.android.cameraview.Constants.FACING_FRONT;
 
-public interface Constants {
+import android.support.annotation.IntDef;
 
-    AspectRatio DEFAULT_ASPECT_RATIO = AspectRatio.of(4, 3);
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
 
-    int FACING_BACK = 0;
-    int FACING_FRONT = 1;
-
-    int FLASH_OFF = 0;
-    int FLASH_ON = 1;
-    int FLASH_TORCH = 2;
-    int FLASH_AUTO = 3;
-    int FLASH_RED_EYE = 4;
-
+@IntDef({FACING_BACK, FACING_FRONT})
+@Retention(RetentionPolicy.SOURCE)
+public @interface Facing {
 }

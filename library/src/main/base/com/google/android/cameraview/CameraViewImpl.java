@@ -16,7 +16,6 @@
 
 package com.google.android.cameraview;
 
-import android.graphics.Matrix;
 import android.hardware.Camera;
 
 import java.util.List;
@@ -72,7 +71,7 @@ abstract class CameraViewImpl {
 
         void onCameraClosed();
 
-        void onPictureTaken(byte[] data, Matrix rotateMatrix);
+        void onPictureTaken(CameraData cameraData);
 
     }
 

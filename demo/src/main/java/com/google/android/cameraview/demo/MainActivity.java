@@ -21,13 +21,9 @@ import android.app.Dialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.graphics.Matrix;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
-import android.os.HandlerThread;
 import android.support.annotation.NonNull;
 import android.support.annotation.StringRes;
 import android.support.v4.app.ActivityCompat;
@@ -43,6 +39,8 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.Toast;
 
+import com.google.android.cameraview.CameraData;
+import com.google.android.cameraview.CameraListener;
 import com.google.android.cameraview.CameraView;
 import com.google.android.cameraview.Constants;
 
@@ -183,17 +181,8 @@ public class MainActivity extends AppCompatActivity implements
         return false;
     }
 
-    private Handler getBackgroundHandler() {
-        if (mBackgroundHandler == null) {
-            HandlerThread thread = new HandlerThread("background");
-            thread.start();
-            mBackgroundHandler = new Handler(thread.getLooper());
-        }
-        return mBackgroundHandler;
-    }
-
-    private CameraView.CameraListener mCameraListener
-            = new CameraView.CameraListener() {
+    private CameraListener mCameraListener
+            = new CameraListener() {
 
         @Override
         public void onCameraOpened(CameraView cameraView) {
@@ -206,22 +195,15 @@ public class MainActivity extends AppCompatActivity implements
         }
 
         @Override
-        public void onPictureTaken(CameraView cameraView, final byte[] data, final Matrix rotateMatrix) {
-            Log.d(TAG, "onPictureTaken " + data.length);
+        public void onPictureTaken(CameraView cameraView, CameraData cameraData) {
+            Log.d(TAG, "onPictureTaken " + cameraData.getJpegData().length);
             Toast.makeText(cameraView.getContext(), R.string.picture_taken, Toast.LENGTH_SHORT)
                     .show();
-            getBackgroundHandler().post(new Runnable() {
-                @Override
-                public void run() {
-                    Bitmap bitmap = BitmapFactory.decodeByteArray(data, 0, data.length);
-                    Bitmap result = Bitmap.createBitmap(bitmap,0,0,bitmap.getWidth(), bitmap.getHeight(), rotateMatrix, true);
 
-                    ResultHolder.dispose();
-                    ResultHolder.setImage(result);
-                    Intent intent = new Intent(MainActivity.this, PreviewActivity.class);
-                    startActivity(intent);
-                }
-            });
+            ResultHolder.dispose();
+            ResultHolder.setImage(cameraData.getBitmap());
+            Intent intent = new Intent(MainActivity.this, PreviewActivity.class);
+            startActivity(intent);
         }
 
     };

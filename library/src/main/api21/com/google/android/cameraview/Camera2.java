@@ -163,7 +163,10 @@ class Camera2 extends CameraViewImpl {
                     ByteBuffer buffer = planes[0].getBuffer();
                     byte[] data = new byte[buffer.remaining()];
                     buffer.get(data);
-                    mCallback.onPictureTaken(data, null);
+                    CameraData cameraData = new CameraData();
+                    cameraData.setJpegData(data);
+                    cameraData.generateBitmap();
+                    mCallback.onPictureTaken(cameraData);
                 }
             }
         }

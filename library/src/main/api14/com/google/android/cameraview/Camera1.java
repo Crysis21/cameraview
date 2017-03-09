@@ -235,8 +235,9 @@ class Camera1 extends CameraViewImpl {
 
     @Override
     public void takePicture() {
-        rotateMatrix = new Matrix();
-        rotateMatrix.postRotate(cameraEye);
+        Log.d(TAG,
+                "take picture: cameraId=" + mCameraId + " displayOrientation=" + mDisplayOrientation
+                        + " cameraEye=" + cameraEye);
         if (!isCameraOpened()) {
             throw new IllegalStateException(
                     "Camera is not ready. Call start() before takePicture().");
@@ -262,8 +263,14 @@ class Camera1 extends CameraViewImpl {
                     mCamera.takePicture(null, null, null, new Camera.PictureCallback() {
                         @Override
                         public void onPictureTaken(byte[] data, Camera camera) {
+                            rotateMatrix = new Matrix();
+                            rotateMatrix.postRotate(cameraEye);
                             camera.cancelAutoFocus();
-                            mCallback.onPictureTaken(data, rotateMatrix);
+                            CameraData cameraData = new CameraData();
+                            cameraData.setJpegData(data);
+                            cameraData.setRotateMatrix(rotateMatrix);
+//                            cameraData.generateBitmap();
+                            mCallback.onPictureTaken(cameraData);
                         }
                     });
                 } catch (RuntimeException ex) {
@@ -449,6 +456,8 @@ class Camera1 extends CameraViewImpl {
                 getPreviewResolution().getWidth(),
                 getPreviewResolution().getHeight()
         );
+        cameraEye = calculateCameraRotation(mDisplayOrientation) + (mFacing == FACING_FRONT
+                ? 180 : 0);
         SortedSet<Size> sizes = mPreviewSizes.sizes(mAspectRatio);
         if (sizes == null) { // Not supported
             mAspectRatio = chooseAspectRatio();
@@ -467,10 +476,8 @@ class Camera1 extends CameraViewImpl {
                     getCaptureResolution().getWidth(),
                     getCaptureResolution().getHeight()
             );
-            cameraEye = calculateCameraRotation(mDisplayOrientation) + (mFacing == FACING_FRONT
-                    ? 180 : 0);
 
-            mCameraParameters.setRotation(calculateCameraRotation(mDisplayOrientation));
+//            mCameraParameters.setRotation(cameraEye);
             setAutoFocusInternal(mAutoFocus);
             setFlashInternal(mFlash);
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
@@ -482,8 +489,6 @@ class Camera1 extends CameraViewImpl {
             }
         }
         mCamera.setDisplayOrientation(calculateCameraRotation(mDisplayOrientation));
-//        CameraUtil.setCameraDisplayOrientation(mPreview.getView().getContext(), mCameraId,
-// mCamera);
 
     }
 
@@ -597,7 +602,7 @@ class Camera1 extends CameraViewImpl {
     private void disableShutterSound() {
         Camera.CameraInfo info = new Camera.CameraInfo();
         Camera.getCameraInfo(mCameraId, info);
-        if (info.canDisableShutterSound && mCamera!=null) {
+        if (info.canDisableShutterSound && mCamera != null) {
             mCamera.enableShutterSound(false);
         }
     }

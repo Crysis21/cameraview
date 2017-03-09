@@ -25,7 +25,6 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.res.Resources;
 import android.content.res.TypedArray;
-import android.graphics.Matrix;
 import android.graphics.Rect;
 import android.hardware.Camera;
 import android.os.Build;
@@ -80,13 +79,13 @@ public class CameraView extends FrameLayout {
         // Internal setup
         final PreviewImpl preview = createPreviewImpl(context);
         mCallbacks = new CallbackBridge();
-        if (Build.VERSION.SDK_INT < 21) {
+//        if (Build.VERSION.SDK_INT < 21) {
             mImpl = new Camera1(mCallbacks, preview);
-        } else if (Build.VERSION.SDK_INT < 23) {
-            mImpl = new Camera2(mCallbacks, preview, context);
-        } else {
-            mImpl = new Camera2Api23(mCallbacks, preview, context);
-        }
+//        } else if (Build.VERSION.SDK_INT < 23) {
+//            mImpl = new Camera2(mCallbacks, preview, context);
+//        } else {
+//            mImpl = new Camera2Api23(mCallbacks, preview, context);
+//        }
         // Attributes
         TypedArray a = context.obtainStyledAttributes(attrs, R.styleable.CameraView,
                 defStyleAttr,
@@ -196,26 +195,6 @@ public class CameraView extends FrameLayout {
             }
         }
         super.onMeasure(widthMeasureSpec, heightMeasureSpec);
-
-//        // Measure the TextureView
-//        int width = getMeasuredWidth();
-//        int height = getMeasuredHeight();
-//        AspectRatio ratio = getAspectRatio();
-//        if (mDisplayOrientationDetector.getLastKnownDisplayOrientation() % 180 == 0) {
-//            ratio = ratio.inverse();
-//        }
-//        assert ratio != null;
-//        if (height < width * ratio.getY() / ratio.getX()) {
-//            mImpl.getView().measure(
-//                    MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY),
-//                    MeasureSpec.makeMeasureSpec(width * ratio.getY() / ratio.getX(),
-//                            MeasureSpec.EXACTLY));
-//        } else {
-//            mImpl.getView().measure(
-//                    MeasureSpec.makeMeasureSpec(height * ratio.getX() / ratio.getY(),
-//                            MeasureSpec.EXACTLY),
-//                    MeasureSpec.makeMeasureSpec(height, MeasureSpec.EXACTLY));
-//        }
     }
 
     @Override
@@ -384,10 +363,6 @@ public class CameraView extends FrameLayout {
     }
 
 
-    /**
-     * Take a picture. The result will be returned to
-     * {@link CameraListener#onPictureTaken(CameraView, byte[], Matrix)}.
-     */
     public void takePicture() {
         mImpl.takePicture();
     }
@@ -428,9 +403,9 @@ public class CameraView extends FrameLayout {
         }
 
         @Override
-        public void onPictureTaken(byte[] data, Matrix rotateMatrix) {
+        public void onPictureTaken(CameraData cameraData) {
             for (CameraListener cameraListener : mCameraListeners) {
-                cameraListener.onPictureTaken(CameraView.this, data, rotateMatrix);
+                cameraListener.onPictureTaken(CameraView.this, cameraData);
             }
         }
 
@@ -487,39 +462,6 @@ public class CameraView extends FrameLayout {
             }
 
         });
-
-    }
-
-    /**
-     * Callback for monitoring events about {@link CameraView}.
-     */
-    @SuppressWarnings("UnusedParameters")
-    public abstract static class CameraListener {
-
-        /**
-         * Called when camera is opened.
-         *
-         * @param cameraView The associated {@link CameraView}.
-         */
-        public void onCameraOpened(CameraView cameraView) {
-        }
-
-        /**
-         * Called when camera is closed.
-         *
-         * @param cameraView The associated {@link CameraView}.
-         */
-        public void onCameraClosed(CameraView cameraView) {
-        }
-
-        /**
-         * Called when a picture is taken.
-         *
-         * @param cameraView The associated {@link CameraView}.
-         * @param data       JPEG data.
-         */
-        public void onPictureTaken(CameraView cameraView, byte[] data, Matrix rotateMatrix) {
-        }
 
     }
 

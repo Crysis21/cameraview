@@ -93,8 +93,8 @@ class TextureViewPreview extends PreviewImpl {
     }
 
     @Override
-    void setDisplayOrientation(int displayOrientation) {
-        mDisplayOrientation = displayOrientation;
+    public void setDisplayOrientation(int displayOrientation) {
+        super.setDisplayOrientation(displayOrientation);
         configureTransform();
     }
 

@@ -18,6 +18,7 @@ abstract class PreviewImpl {
 
     protected int mTrueWidth;
     protected int mTrueHeight;
+    protected int mDisplayOrientation;
 
     void setCallback(Callback callback) {
         mCallback = callback;
@@ -29,7 +30,11 @@ abstract class PreviewImpl {
 
     abstract Class getOutputClass();
 
-    abstract void setDisplayOrientation(int displayOrientation);
+    public void setDisplayOrientation(int displayOrientation) {
+        mDisplayOrientation = displayOrientation;
+    }
+
+    ;
 
     abstract boolean isReady();
 
@@ -65,8 +70,13 @@ abstract class PreviewImpl {
         this.mTrueWidth = width;
         this.mTrueHeight = height;
 
+        //TODO: scale according with display orientation
         if (width != 0 && height != 0) {
             AspectRatio aspectRatio = AspectRatio.of(width, height);
+            if (mDisplayOrientation == 90
+                    || mDisplayOrientation == 270) {
+                aspectRatio.inverse();
+            }
             int targetHeight = (int) (getView().getWidth() * aspectRatio.toFloat());
             float scaleY;
             if (getView().getHeight() > 0) {

@@ -42,7 +42,7 @@ class CameraViewActions {
 
             @Override
             public void perform(UiController controller, View view) {
-                ((CameraView) view).setAspectRatio(ratio);
+//                ((CameraView) view).setAspectRatio(ratio);
             }
         };
     }

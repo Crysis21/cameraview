@@ -39,6 +39,7 @@ abstract class CameraViewImpl {
 
     abstract void setFacing(int facing);
 
+    @Facing
     abstract int getFacing();
 
     abstract void setAutoFocus(boolean autoFocus);

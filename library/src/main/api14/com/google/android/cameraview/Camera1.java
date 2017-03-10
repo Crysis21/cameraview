@@ -34,7 +34,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
-import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -69,14 +68,6 @@ class Camera1 extends CameraViewImpl {
     private Camera.Parameters mCameraParameters;
 
     private final Camera.CameraInfo mCameraInfo = new Camera.CameraInfo();
-
-    private final SizeMap mPreviewSizes = new SizeMap();
-
-    private final SizeMap mPictureSizes = new SizeMap();
-
-    private AspectRatio mAspectRatio;
-
-    private boolean mShowingPreview;
 
     private boolean mAutoFocus;
 
@@ -120,7 +111,6 @@ class Camera1 extends CameraViewImpl {
         if (mPreview.isReady()) {
             setUpPreview();
         }
-        mShowingPreview = true;
         mCamera.startPreview();
         return true;
     }
@@ -131,7 +121,6 @@ class Camera1 extends CameraViewImpl {
             mCamera.stopPreview();
             mCamera.cancelAutoFocus();
         }
-        mShowingPreview = false;
         releaseCamera();
     }
 
@@ -144,6 +133,7 @@ class Camera1 extends CameraViewImpl {
                 mCamera.setPreviewTexture(mPreview.getSurfaceTexture());
             }
         } catch (IOException e) {
+            e.printStackTrace();
             throw new RuntimeException(e);
         }
     }
@@ -417,38 +407,10 @@ class Camera1 extends CameraViewImpl {
         mCamera = Camera.open(mCameraId);
         mCameraParameters = mCamera.getParameters();
 
-        // Supported preview sizes
-        mPreviewSizes.clear();
-        for (Camera.Size size : mCameraParameters.getSupportedPreviewSizes()) {
-            mPreviewSizes.add(new Size(size.width, size.height));
-        }
-
-        // Supported picture sizes;
-        mPictureSizes.clear();
-        for (Camera.Size size : mCameraParameters.getSupportedPictureSizes()) {
-            mPictureSizes.add(new Size(size.width, size.height));
-        }
-
-        // AspectRatio
-        if (mAspectRatio == null) {
-            mAspectRatio = Constants.DEFAULT_ASPECT_RATIO;
-        }
-
         adjustCameraParameters();
+        mCamera.setDisplayOrientation(calculateCameraRotation(mDisplayOrientation));
         mCallback.onCameraOpened();
     }
-
-    private AspectRatio chooseAspectRatio() {
-        AspectRatio r = null;
-        for (AspectRatio ratio : mPreviewSizes.ratios()) {
-            r = ratio;
-            if (ratio.equals(Constants.DEFAULT_ASPECT_RATIO)) {
-                return ratio;
-            }
-        }
-        return r;
-    }
-
 
     private void adjustCameraParameters() {
         if (mCamera == null || mCameraParameters == null) return;
@@ -478,33 +440,6 @@ class Camera1 extends CameraViewImpl {
 
     }
 
-    @SuppressWarnings("SuspiciousNameCombination")
-    private Size chooseOptimalSize(SortedSet<Size> sizes) {
-        if (!mPreview.isReady()) { // Not yet laid out
-            return sizes.first(); // Return the smallest size
-        }
-        int desiredWidth;
-        int desiredHeight;
-        final int surfaceWidth = mPreview.getWidth();
-        final int surfaceHeight = mPreview.getHeight();
-        if (mDisplayOrientation == 90 || mDisplayOrientation == 270) {
-            desiredWidth = surfaceHeight;
-            desiredHeight = surfaceWidth;
-        } else {
-            desiredWidth = surfaceWidth;
-            desiredHeight = surfaceHeight;
-        }
-        Size result = null;
-        for (Size size : sizes) { // Iterate from small to large
-            if (desiredWidth <= size.getWidth() && desiredHeight <= size.getHeight()) {
-                return size;
-
-            }
-            result = size;
-        }
-        return result;
-    }
-
     private void releaseCamera() {
         if (mCamera != null) {
             mCamera.release();
@@ -523,19 +458,6 @@ class Camera1 extends CameraViewImpl {
             return (mCameraInfo.orientation - rotation + 360) % 360;
         }
     }
-
-    private int calcCameraRotation(int rotation) {
-        if (mCameraInfo.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
-            return (360 - (mCameraInfo.orientation + rotation) % 360) % 360;
-        } else {  // back-facing
-            return (mCameraInfo.orientation - rotation + 360) % 360;
-        }
-//        return rotation;
-    }
-
-    /**
-     * @return {@code true} if {@link #mCameraParameters} was modified.
-     */
     private boolean setAutoFocusInternal(boolean autoFocus) {
         mAutoFocus = autoFocus;
         if (isCameraOpened()) {
@@ -559,9 +481,6 @@ class Camera1 extends CameraViewImpl {
         }
     }
 
-    /**
-     * @return {@code true} if {@link #mCameraParameters} was modified.
-     */
     private boolean setFlashInternal(int flash) {
         if (isCameraOpened()) {
             List<String> modes = mCameraParameters.getSupportedFlashModes();

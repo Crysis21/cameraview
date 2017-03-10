@@ -75,13 +75,13 @@ public class CameraView extends FrameLayout {
 
         preview = createPreviewImpl(context);
         mCallbacks = new CallbackBridge();
-        if (Build.VERSION.SDK_INT < 21) {
+//        if (Build.VERSION.SDK_INT < 21) {
             mImpl = new Camera1(mCallbacks, preview);
-        } else if (Build.VERSION.SDK_INT < 23) {
-            mImpl = new Camera2(mCallbacks, preview, context);
-        } else {
-            mImpl = new Camera2Api23(mCallbacks, preview, context);
-        }
+//        } else if (Build.VERSION.SDK_INT < 23) {
+//            mImpl = new Camera2(mCallbacks, preview, context);
+//        } else {
+//            mImpl = new Camera2Api23(mCallbacks, preview, context);
+//        }
 
         TypedArray a = context.obtainStyledAttributes(attrs, R.styleable.CameraView,
                 defStyleAttr,
@@ -194,36 +194,8 @@ public class CameraView extends FrameLayout {
         super.onMeasure(widthMeasureSpec, heightMeasureSpec);
     }
 
-    @Override
-    protected Parcelable onSaveInstanceState() {
-        SavedState state = new SavedState(super.onSaveInstanceState());
-        state.facing = getFacing();
-        state.autoFocus = getAutoFocus();
-        state.flash = getFlash();
-        return state;
-    }
-
-    @Override
-    protected void onRestoreInstanceState(Parcelable state) {
-        if (!(state instanceof SavedState)) {
-            super.onRestoreInstanceState(state);
-            return;
-        }
-        SavedState ss = (SavedState) state;
-        super.onRestoreInstanceState(ss.getSuperState());
-        setFacing(ss.facing);
-        setAutoFocus(ss.autoFocus);
-        setFlash(ss.flash);
-    }
-
     public void start() {
-        if (!mImpl.start()) {
-            Parcelable state = onSaveInstanceState();
-            // Camera2 uses legacy hardware layer; fall back to Camera1
-            mImpl = new Camera1(mCallbacks, createPreviewImpl(getContext()));
-            onRestoreInstanceState(state);
-            mImpl.start();
-        }
+        mImpl.start();
     }
 
     public void stop() {

@@ -1,9 +1,6 @@
 package com.google.android.cameraview;
 
-import static android.content.ContentValues.TAG;
-
 import android.graphics.SurfaceTexture;
-import android.util.Log;
 import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.View;
@@ -21,7 +18,6 @@ abstract class PreviewImpl {
 
     protected int mTrueWidth;
     protected int mTrueHeight;
-    protected int mDisplayOrientation;
 
     void setCallback(Callback callback) {
         mCallback = callback;
@@ -33,9 +29,7 @@ abstract class PreviewImpl {
 
     abstract Class getOutputClass();
 
-    public void setDisplayOrientation(int displayOrientation) {
-        mDisplayOrientation = displayOrientation;
-    }
+    abstract void setDisplayOrientation(int displayOrientation);
 
     abstract boolean isReady();
 
@@ -67,17 +61,10 @@ abstract class PreviewImpl {
         return mHeight;
     }
 
-
     void setTruePreviewSize(int width, int height) {
         this.mTrueWidth = width;
         this.mTrueHeight = height;
-//        if (mDisplayOrientation == 90
-//                || mDisplayOrientation == 270) {
-//            mTrueHeight = mTrueWidth;
-//            mTrueWidth = mTrueHeight;
-//        }
-        Log.d(TAG, "setPreviewSize [" + width + " x " + height + "]" + " orientation="
-                + mDisplayOrientation);
+
         if (width != 0 && height != 0) {
             AspectRatio aspectRatio = AspectRatio.of(width, height);
             int targetHeight = (int) (getView().getWidth() * aspectRatio.toFloat());

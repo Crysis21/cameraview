@@ -75,13 +75,13 @@ public class CameraView extends FrameLayout {
 
         preview = createPreviewImpl(context);
         mCallbacks = new CallbackBridge();
-//        if (Build.VERSION.SDK_INT < 21) {
+        if (Build.VERSION.SDK_INT < 21) {
             mImpl = new Camera1(mCallbacks, preview);
-//        } else if (Build.VERSION.SDK_INT < 23) {
-//            mImpl = new Camera2(mCallbacks, preview, context);
-//        } else {
-//            mImpl = new Camera2Api23(mCallbacks, preview, context);
-//        }
+        } else if (Build.VERSION.SDK_INT < 23) {
+            mImpl = new Camera2(mCallbacks, preview, context);
+        } else {
+            mImpl = new Camera2Api23(mCallbacks, preview, context);
+        }
 
         TypedArray a = context.obtainStyledAttributes(attrs, R.styleable.CameraView,
                 defStyleAttr,
@@ -195,7 +195,11 @@ public class CameraView extends FrameLayout {
     }
 
     public void start() {
-        mImpl.start();
+        if (!mImpl.start()) {
+            // Camera2 uses legacy hardware layer; fall back to Camera1
+            mImpl = new Camera1(mCallbacks, createPreviewImpl(getContext()));
+            mImpl.start();
+        }
     }
 
     public void stop() {

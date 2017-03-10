@@ -217,7 +217,8 @@ class Camera1 extends CameraViewImpl {
                 setFlash(Constants.FLASH_AUTO);
                 break;
             case Constants.FLASH_ON:
-                setFacing(Constants.FLASH_OFF);
+            default:
+                setFlash(Constants.FLASH_OFF);
                 break;
         }
         return mFlash;
@@ -458,6 +459,7 @@ class Camera1 extends CameraViewImpl {
             return (mCameraInfo.orientation - rotation + 360) % 360;
         }
     }
+
     private boolean setAutoFocusInternal(boolean autoFocus) {
         mAutoFocus = autoFocus;
         if (isCameraOpened()) {

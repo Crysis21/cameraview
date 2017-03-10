@@ -244,7 +244,7 @@ class Camera2 extends CameraViewImpl {
     }
 
     @Override
-    void setFacing(int facing) {
+    void setFacing(@Facing int facing) {
         if (mFacing == facing) {
             return;
         }
@@ -298,7 +298,7 @@ class Camera2 extends CameraViewImpl {
     }
 
     @Override
-    void setFlash(int flash) {
+    void setFlash(@Flash int flash) {
         if (mFlash == flash) {
             return;
         }
@@ -333,7 +333,7 @@ class Camera2 extends CameraViewImpl {
                 break;
             case Constants.FLASH_ON:
             default:
-                setFacing(Constants.FLASH_OFF);
+                setFlash(Constants.FLASH_OFF);
                 break;
         }
         return mFlash;

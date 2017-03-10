@@ -55,11 +55,10 @@ public class CameraData {
     }
 
     public void generateBitmap() {
-        Bitmap temp = BitmapFactory.decodeByteArray(jpegData, 0, jpegData.length);
+        bitmap = BitmapFactory.decodeByteArray(jpegData, 0, jpegData.length);
         if (rotateMatrix != null) {
-            bitmap = Bitmap.createBitmap(temp, 0, 0, temp.getWidth(), temp.getHeight(),
+            bitmap = Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(),
                     rotateMatrix, true);
         }
-        temp.recycle();
     }
 }

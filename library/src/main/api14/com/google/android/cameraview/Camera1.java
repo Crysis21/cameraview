@@ -284,7 +284,6 @@ class Camera1 extends CameraViewImpl {
     @Override
     void setDisplayOrientation(int displayOrientation) {
         mDisplayOrientation = displayOrientation;
-        mPreview.setDisplayOrientation(displayOrientation);
         adjustCameraParameters();
     }
 
@@ -458,36 +457,24 @@ class Camera1 extends CameraViewImpl {
         );
         cameraEye = calculateCameraRotation(mDisplayOrientation) + (mFacing == FACING_FRONT
                 ? 180 : 0);
-        SortedSet<Size> sizes = mPreviewSizes.sizes(mAspectRatio);
-        if (sizes == null) { // Not supported
-            mAspectRatio = chooseAspectRatio();
-            sizes = mPreviewSizes.sizes(mAspectRatio);
-        }
-        Size size = chooseOptimalSize(sizes);
-        final Camera.Size currentSize = mCameraParameters.getPictureSize();
-        if (currentSize.width != size.getWidth() || currentSize.height != size.getHeight()) {
-            // Largest picture size in this ratio
-            final Size pictureSize = mPictureSizes.sizes(mAspectRatio).last();
-            if (mShowingPreview) {
-                mCamera.stopPreview();
-            }
+        mPreview.setTruePreviewSize(
+                getPreviewResolution().getWidth(),
+                getPreviewResolution().getHeight()
+        );
 
-            mCameraParameters.setPictureSize(
-                    getCaptureResolution().getWidth(),
-                    getCaptureResolution().getHeight()
-            );
+        mCameraParameters.setPreviewSize(
+                getPreviewResolution().getWidth(),
+                getPreviewResolution().getHeight()
+        );
 
-//            mCameraParameters.setRotation(cameraEye);
-            setAutoFocusInternal(mAutoFocus);
-            setFlashInternal(mFlash);
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
-                disableShutterSound();
-            }
-            mCamera.setParameters(mCameraParameters);
-            if (mShowingPreview) {
-                mCamera.startPreview();
-            }
-        }
+        mCameraParameters.setPictureSize(
+                getCaptureResolution().getWidth(),
+                getCaptureResolution().getHeight()
+        );
+
+        setFlash(mFlash);
+        Log.d(TAG, "adjustCameraParams preview[" + getPreviewResolution().getWidth() + ", " + getPreviewResolution().getHeight() + "]");
+        mCamera.setParameters(mCameraParameters);
         mCamera.setDisplayOrientation(calculateCameraRotation(mDisplayOrientation));
 
     }

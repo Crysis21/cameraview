@@ -66,17 +66,13 @@ abstract class PreviewImpl {
         return mHeight;
     }
 
+
     void setTruePreviewSize(int width, int height) {
         this.mTrueWidth = width;
         this.mTrueHeight = height;
 
-        //TODO: scale according with display orientation
         if (width != 0 && height != 0) {
             AspectRatio aspectRatio = AspectRatio.of(width, height);
-            if (mDisplayOrientation == 90
-                    || mDisplayOrientation == 270) {
-                aspectRatio.inverse();
-            }
             int targetHeight = (int) (getView().getWidth() * aspectRatio.toFloat());
             float scaleY;
             if (getView().getHeight() > 0) {

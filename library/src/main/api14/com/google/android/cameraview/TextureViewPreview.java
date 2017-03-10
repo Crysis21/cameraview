@@ -50,7 +50,6 @@ class TextureViewPreview extends PreviewImpl {
                 configureTransform();
                 dispatchSurfaceChanged();
                 setTruePreviewSize(mTrueWidth, mTrueHeight);
-
             }
 
             @Override
@@ -65,21 +64,14 @@ class TextureViewPreview extends PreviewImpl {
         });
     }
 
-    // This method is called only from Camera2.
-//    @TargetApi(15)
-//    @Override
-//    void setBufferSize(int width, int height) {
-//        mTextureView.getSurfaceTexture().setDefaultBufferSize(width, height);
-//    }
+    @Override
+    void setCallback(Callback callback) {
+        super.setCallback(callback);
+    }
 
     @Override
     Surface getSurface() {
         return new Surface(mTextureView.getSurfaceTexture());
-    }
-
-    @Override
-    SurfaceTexture getSurfaceTexture() {
-        return mTextureView.getSurfaceTexture();
     }
 
     @Override
@@ -94,8 +86,23 @@ class TextureViewPreview extends PreviewImpl {
 
     @Override
     public void setDisplayOrientation(int displayOrientation) {
-        super.setDisplayOrientation(displayOrientation);
+        mDisplayOrientation = displayOrientation;
         configureTransform();
+    }
+
+    @Override
+    boolean isReady() {
+        return mTextureView.getSurfaceTexture() != null;
+    }
+
+    @Override
+    protected void dispatchSurfaceChanged() {
+        super.dispatchSurfaceChanged();
+    }
+
+    @Override
+    SurfaceTexture getSurfaceTexture() {
+        return mTextureView.getSurfaceTexture();
     }
 
     @TargetApi(15)
@@ -107,16 +114,6 @@ class TextureViewPreview extends PreviewImpl {
         }
     }
 
-
-    @Override
-    boolean isReady() {
-        return mTextureView.getSurfaceTexture() != null;
-    }
-
-    /**
-     * Configures the transform matrix for TextureView based on {@link #mDisplayOrientation} and
-     * the surface size.
-     */
     void configureTransform() {
         Matrix matrix = new Matrix();
         if (mDisplayOrientation % 180 == 90) {

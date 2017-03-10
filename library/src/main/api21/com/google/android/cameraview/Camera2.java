@@ -351,13 +351,12 @@ class Camera2 extends CameraViewImpl {
     @Override
     void setDisplayOrientation(int displayOrientation) {
         mDisplayOrientation = displayOrientation;
-        mPreview.setDisplayOrientation(mDisplayOrientation);
     }
 
     @Override
     void setMeteringAndFocusAreas(List<Camera.Area> meteringAndFocusAreas) {
         //TODO: Implement
-        throw new RuntimeException("Set Metering and focus areas is not Supported");
+//        throw new RuntimeException("Set Metering and focus areas is not Supported");
     }
 
     @Override

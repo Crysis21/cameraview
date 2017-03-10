@@ -21,13 +21,13 @@ import static com.google.android.cameraview.Constants.FLASH_AUTO;
 import static com.google.android.cameraview.Constants.FLASH_OFF;
 
 import android.annotation.TargetApi;
-import android.app.Activity;
 import android.content.Context;
 import android.content.res.Resources;
 import android.content.res.TypedArray;
 import android.graphics.Rect;
 import android.hardware.Camera;
 import android.os.Build;
+import android.os.HandlerThread;
 import android.os.Parcel;
 import android.os.Parcelable;
 import android.support.annotation.NonNull;
@@ -44,26 +44,19 @@ import java.util.List;
 
 public class CameraView extends FrameLayout {
 
-    static class Internal {
-
-        static final int screenWidth = Resources.getSystem().getDisplayMetrics().widthPixels;
-        static final int screenHeight = Resources.getSystem().getDisplayMetrics().heightPixels;
-
-    }
-
     private static final String TAG = CameraView.class.getCanonicalName();
 
+    static class Internal {
+        static final int screenWidth = Resources.getSystem().getDisplayMetrics().widthPixels;
+        static final int screenHeight = Resources.getSystem().getDisplayMetrics().heightPixels;
+    }
 
-    /**
-     * The mode for for the camera device's flash control
-     */
-    CameraViewImpl mImpl;
-
+    private CameraViewImpl mImpl;
     private final CallbackBridge mCallbacks;
-
     private boolean mAdjustViewBounds;
-
     private final DisplayOrientationDetector mDisplayOrientationDetector;
+    private PreviewImpl preview;
+    private HandlerThread handlerThread;
 
     public CameraView(Context context) {
         this(context, null);
@@ -76,17 +69,20 @@ public class CameraView extends FrameLayout {
     @SuppressWarnings("WrongConstant")
     public CameraView(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
-        // Internal setup
-        final PreviewImpl preview = createPreviewImpl(context);
+
+        handlerThread = new HandlerThread("camera_thread");
+        handlerThread.start();
+
+        preview = createPreviewImpl(context);
         mCallbacks = new CallbackBridge();
-//        if (Build.VERSION.SDK_INT < 21) {
+        if (Build.VERSION.SDK_INT < 21) {
             mImpl = new Camera1(mCallbacks, preview);
-//        } else if (Build.VERSION.SDK_INT < 23) {
-//            mImpl = new Camera2(mCallbacks, preview, context);
-//        } else {
-//            mImpl = new Camera2Api23(mCallbacks, preview, context);
-//        }
-        // Attributes
+        } else if (Build.VERSION.SDK_INT < 23) {
+            mImpl = new Camera2(mCallbacks, preview, context);
+        } else {
+            mImpl = new Camera2Api23(mCallbacks, preview, context);
+        }
+
         TypedArray a = context.obtainStyledAttributes(attrs, R.styleable.CameraView,
                 defStyleAttr,
                 R.style.Widget_CameraView);
@@ -97,13 +93,15 @@ public class CameraView extends FrameLayout {
         setAutoFocus(a.getBoolean(R.styleable.CameraView_autoFocus, true));
         setFlash(a.getInt(R.styleable.CameraView_flash, FLASH_AUTO));
         a.recycle();
-        // Display orientation detector
+
         mDisplayOrientationDetector = new DisplayOrientationDetector(context) {
             @Override
             public void onDisplayOrientationChanged(int displayOrientation) {
                 mImpl.setDisplayOrientation(displayOrientation);
+                preview.setDisplayOrientation(displayOrientation);
             }
         };
+
         setTouchToFocus();
     }
 
@@ -165,7 +163,6 @@ public class CameraView extends FrameLayout {
 
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-        // Handle android:adjustViewBounds
         if (mAdjustViewBounds) {
             if (!isCameraOpened()) {
                 mCallbacks.reserveRequestLayoutOnOpen();
@@ -201,7 +198,6 @@ public class CameraView extends FrameLayout {
     protected Parcelable onSaveInstanceState() {
         SavedState state = new SavedState(super.onSaveInstanceState());
         state.facing = getFacing();
-//        state.ratio = getAspectRatio();
         state.autoFocus = getAutoFocus();
         state.flash = getFlash();
         return state;
@@ -216,18 +212,12 @@ public class CameraView extends FrameLayout {
         SavedState ss = (SavedState) state;
         super.onRestoreInstanceState(ss.getSuperState());
         setFacing(ss.facing);
-//        setAspectRatio(ss.ratio);
         setAutoFocus(ss.autoFocus);
         setFlash(ss.flash);
     }
 
-    /**
-     * Open a camera device and start showing camera preview. This is typically called from
-     * {@link Activity#onResume()}.
-     */
     public void start() {
         if (!mImpl.start()) {
-            //store the state ,and restore this state after fall back o Camera1
             Parcelable state = onSaveInstanceState();
             // Camera2 uses legacy hardware layer; fall back to Camera1
             mImpl = new Camera1(mCallbacks, createPreviewImpl(getContext()));
@@ -236,46 +226,22 @@ public class CameraView extends FrameLayout {
         }
     }
 
-    /**
-     * Stop camera preview and close the device. This is typically called from
-     * {@link Activity#onPause()}.
-     */
     public void stop() {
         mImpl.stop();
     }
 
-    /**
-     * @return {@code true} if the camera is opened.
-     */
     public boolean isCameraOpened() {
         return mImpl.isCameraOpened();
     }
 
-    /**
-     * Add a new callback.
-     *
-     * @param cameraListener The {@link CameraListener} to add.
-     * @see #removeCallback(CameraListener)
-     */
     public void addCallback(@NonNull CameraListener cameraListener) {
         mCallbacks.add(cameraListener);
     }
 
-    /**
-     * Remove a callback.
-     *
-     * @param cameraListener The {@link CameraListener} to remove.
-     * @see #addCallback(CameraListener)
-     */
     public void removeCallback(@NonNull CameraListener cameraListener) {
         mCallbacks.remove(cameraListener);
     }
 
-    /**
-     * @param adjustViewBounds {@code true} if you want the CameraView to adjust its bounds to
-     *                         preserve the aspect ratio of camera.
-     * @see #getAdjustViewBounds()
-     */
     public void setAdjustViewBounds(boolean adjustViewBounds) {
         if (mAdjustViewBounds != adjustViewBounds) {
             mAdjustViewBounds = adjustViewBounds;
@@ -283,11 +249,6 @@ public class CameraView extends FrameLayout {
         }
     }
 
-    /**
-     * @return True when this CameraView is adjusting its bounds to preserve the aspect ratio of
-     * camera.
-     * @see #setAdjustViewBounds(boolean)
-     */
     public boolean getAdjustViewBounds() {
         return mAdjustViewBounds;
     }
@@ -297,11 +258,6 @@ public class CameraView extends FrameLayout {
         mImpl.setFacing(facing);
     }
 
-    /**
-     * Gets the direction that the current camera faces.
-     *
-     * @return The camera facing.
-     */
     @Facing
     public int getFacing() {
         //noinspection WrongConstant
@@ -314,41 +270,18 @@ public class CameraView extends FrameLayout {
         return mImpl.toggleFacing();
     }
 
-    /**
-     * Enables or disables the continuous auto-focus mode. When the current camera doesn't support
-     * auto-focus, calling this method will be ignored.
-     *
-     * @param autoFocus {@code true} to enable continuous auto-focus mode. {@code false} to
-     *                  disable it.
-     */
     public void setAutoFocus(boolean autoFocus) {
         mImpl.setAutoFocus(autoFocus);
     }
 
-    /**
-     * Returns whether the continuous auto-focus mode is enabled.
-     *
-     * @return {@code true} if the continuous auto-focus mode is enabled. {@code false} if it is
-     * disabled, or if it is not supported by the current camera.
-     */
     public boolean getAutoFocus() {
         return mImpl.getAutoFocus();
     }
 
-    /**
-     * Sets the flash mode.
-     *
-     * @param flash The desired flash mode.
-     */
     public void setFlash(@Flash int flash) {
         mImpl.setFlash(flash);
     }
 
-    /**
-     * Gets the current flash mode.
-     *
-     * @return The current flash mode.
-     */
     @Flash
     public int getFlash() {
         //noinspection WrongConstant

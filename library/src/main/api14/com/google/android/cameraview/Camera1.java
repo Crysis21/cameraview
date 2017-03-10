@@ -433,8 +433,8 @@ class Camera1 extends CameraViewImpl {
         if (mAspectRatio == null) {
             mAspectRatio = Constants.DEFAULT_ASPECT_RATIO;
         }
-        adjustCameraParameters();
 
+        adjustCameraParameters();
         mCallback.onCameraOpened();
     }
 
@@ -451,12 +451,10 @@ class Camera1 extends CameraViewImpl {
 
 
     private void adjustCameraParameters() {
-        mPreview.setTruePreviewSize(
-                getPreviewResolution().getWidth(),
-                getPreviewResolution().getHeight()
-        );
+        if (mCamera == null || mCameraParameters == null) return;
         cameraEye = calculateCameraRotation(mDisplayOrientation) + (mFacing == FACING_FRONT
                 ? 180 : 0);
+
         mPreview.setTruePreviewSize(
                 getPreviewResolution().getWidth(),
                 getPreviewResolution().getHeight()
@@ -473,7 +471,8 @@ class Camera1 extends CameraViewImpl {
         );
 
         setFlash(mFlash);
-        Log.d(TAG, "adjustCameraParams preview[" + getPreviewResolution().getWidth() + ", " + getPreviewResolution().getHeight() + "]");
+        Log.d(TAG, "adjustCameraParams preview[" + getPreviewResolution().getWidth() + ", "
+                + getPreviewResolution().getHeight() + "]");
         mCamera.setParameters(mCameraParameters);
         mCamera.setDisplayOrientation(calculateCameraRotation(mDisplayOrientation));
 

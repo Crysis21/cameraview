@@ -72,6 +72,8 @@ abstract class CameraViewImpl {
 
         void onCameraClosed();
 
+        void onCameraFailed();
+
         void onPictureTaken(CameraData cameraData);
 
     }

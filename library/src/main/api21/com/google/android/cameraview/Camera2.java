@@ -224,17 +224,20 @@ class Camera2 extends CameraViewImpl {
 
     @Override
     void stop() {
-        if (mCaptureSession != null) {
-            mCaptureSession.close();
-            mCaptureSession = null;
-        }
-        if (mCamera != null) {
-            mCamera.close();
-            mCamera = null;
-        }
-        if (mImageReader != null) {
-            mImageReader.close();
-            mImageReader = null;
+        try {
+            if (null != mCaptureSession) {
+                mCaptureSession.close();
+                mCaptureSession = null;
+            }
+            if (null != mCamera) {
+                mCamera.close();
+                mCamera = null;
+            }
+            if (null != mImageReader) {
+                mImageReader.close();
+                mImageReader = null;
+            }
+        } finally {
         }
     }
 
@@ -289,6 +292,7 @@ class Camera2 extends CameraViewImpl {
         } else {
             setFacing(FACING_BACK);
         }
+        setAutoFocus(true);
         return getFacing();
     }
 
@@ -357,6 +361,9 @@ class Camera2 extends CameraViewImpl {
     void setMeteringAndFocusAreas(List<Camera.Area> meteringAndFocusAreas) {
         //TODO: Implement
 //        throw new RuntimeException("Set Metering and focus areas is not Supported");
+
+        mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE,
+                CaptureRequest.CONTROL_AF_MODE_AUTO);
     }
 
     @Override
@@ -529,6 +536,7 @@ class Camera2 extends CameraViewImpl {
             mFacing = FACING_BACK;
             return true;
         } catch (CameraAccessException e) {
+            e.printStackTrace();
             throw new RuntimeException("Failed to get a list of camera devices", e);
         }
     }

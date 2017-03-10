@@ -405,12 +405,17 @@ class Camera1 extends CameraViewImpl {
         if (mCamera != null) {
             releaseCamera();
         }
-        mCamera = Camera.open(mCameraId);
-        mCameraParameters = mCamera.getParameters();
+        try {
+            mCamera = Camera.open(mCameraId);
+            mCameraParameters = mCamera.getParameters();
 
-        adjustCameraParameters();
-        mCamera.setDisplayOrientation(calculateCameraRotation(mDisplayOrientation));
-        mCallback.onCameraOpened();
+            adjustCameraParameters();
+            mCamera.setDisplayOrientation(calculateCameraRotation(mDisplayOrientation));
+            mCallback.onCameraOpened();
+        } catch (Exception e) {
+            mCallback.onCameraFailed();
+            e.printStackTrace();
+        }
     }
 
     private void adjustCameraParameters() {

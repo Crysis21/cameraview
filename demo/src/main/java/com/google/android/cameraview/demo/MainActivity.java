@@ -91,6 +91,7 @@ public class MainActivity extends AppCompatActivity implements
         super.onResume();
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
                 == PackageManager.PERMISSION_GRANTED) {
+            mCameraView.setFacing(Constants.FACING_FRONT);
             mCameraView.start();
         } else if (ActivityCompat.shouldShowRequestPermissionRationale(this,
                 Manifest.permission.CAMERA)) {

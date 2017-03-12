@@ -107,12 +107,17 @@ class Camera1 extends CameraViewImpl {
     @Override
     boolean start() {
         chooseCamera();
-        openCamera();
-        if (mPreview.isReady()) {
-            setUpPreview();
+        try {
+            openCamera();
+            if (mPreview.isReady()) {
+                setUpPreview();
+            }
+            mCamera.startPreview();
+            return true;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
         }
-        mCamera.startPreview();
-        return true;
     }
 
     @Override
@@ -405,17 +410,13 @@ class Camera1 extends CameraViewImpl {
         if (mCamera != null) {
             releaseCamera();
         }
-        try {
-            mCamera = Camera.open(mCameraId);
-            mCameraParameters = mCamera.getParameters();
+        mCamera = Camera.open(mCameraId);
+        mCameraParameters = mCamera.getParameters();
 
-            adjustCameraParameters();
-            mCamera.setDisplayOrientation(calculateCameraRotation(mDisplayOrientation));
-            mCallback.onCameraOpened();
-        } catch (Exception e) {
-            mCallback.onCameraFailed();
-            e.printStackTrace();
-        }
+        adjustCameraParameters();
+        mCamera.setDisplayOrientation(calculateCameraRotation(mDisplayOrientation));
+        mCallback.onCameraOpened();
+
     }
 
     private void adjustCameraParameters() {
